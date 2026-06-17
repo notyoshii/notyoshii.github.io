@@ -458,9 +458,9 @@
 
         // Внутреннее представление (IR) математического демо-чата
         const sampleMathIR = [
-            { sender: "user", texts: ["Hello! Can you help me find the derivative of the function f(x) = x^3 + 2x^2 - 5x + 7 and then integrate the result back to verify it?"], timestamp: "2026-06-16T12:01:23Z", id: 1 },
-            { sender: "character", texts: ["Of course! Let's solve this step by step.\n\nFirst, we'll find the derivative f'(x) using the power rule:\n\nf'(x) = d/dx(x^3) + d/dx(2x^2) - d/dx(5x) + d/dx(7)\nf'(x) = 3x^2 + 4x - 5\n\nNow, let's integrate f'(x) back:\n\n∫(3x^2 + 4x - 5) dx = x^3 + 2x^2 - 5x + C\n\nSince C is the constant of integration, it matches the original constant '7' from your function. It works perfectly!"], timestamp: "2026-06-16T12:02:45Z", id: 2 },
-            { sender: "user", texts: ["That makes total sense! Thank you so much for the clear and quick explanation."], timestamp: "2026-06-16T12:04:10Z", id: 3 }
+            { sender: "user", texts: ["Hello! Can you help me find the derivative of the function f(x) = x^3 + 2x^2 - 5x + 7 and then integrate the result back to verify it?"], timestamp: "2026-06-16T12:01:23Z" },
+            { sender: "character", texts: ["Of course! Let's solve this step by step.\n\nFirst, we'll find the derivative f'(x) using the power rule:\n\nf'(x) = d/dx(x^3) + d/dx(2x^2) - d/dx(5x) + d/dx(7)\nf'(x) = 3x^2 + 4x - 5\n\nNow, let's integrate f'(x) back:\n\n∫(3x^2 + 4x - 5) dx = x^3 + 2x^2 - 5x + C\n\nSince C is the constant of integration, it matches the original constant '7' from your function. It works perfectly!"], timestamp: "2026-06-16T12:02:45Z" },
+            { sender: "user", texts: ["That makes total sense! Thank you so much for the clear and quick explanation."], timestamp: "2026-06-16T12:04:10Z" }
         ];
 
         // Глобальные состояния
@@ -607,32 +607,32 @@
             else if (input && input.messages && Array.isArray(input.messages)) messages = input.messages;
             else throw new Error("Could not find messages array");
             
-            return messages.map((msg, index) => {
+            return messages.map((msg) => {
                 const sender = (msg.role === "assistant" || msg.sender === "assistant") ? "character" : (msg.sender || msg.role || "user");
-                return {
+                const res = {
                     sender,
                     texts: normalizeContent(msg.content ?? msg.texts ?? ""),
-                    timestamp: msg.timestamp || msg.created_at || new Date().toISOString(),
-                    name: msg.name,
-                    id: msg.id || (index + 1)
+                    timestamp: msg.timestamp || msg.created_at || new Date().toISOString()
                 };
+                if (msg.name) res.name = msg.name;
+                return res;
             });
         }
 
         function parseSillyTavern(text) {
             const lines = text.split('\n').map(l => l.trim()).filter(l => l);
             const messages = [];
-            let idCounter = 1;
             for (const line of lines) {
                 const parsed = JSON.parse(line);
                 if (parsed.mes === undefined) continue;
-                messages.push({
+                
+                const res = {
                     sender: parsed.is_user ? "user" : "character",
                     texts: normalizeContent(parsed.mes),
-                    timestamp: parsed.send_date ? new Date(Number(parsed.send_date)).toISOString() : new Date().toISOString(),
-                    name: parsed.name,
-                    id: idCounter++
-                });
+                    timestamp: parsed.send_date ? new Date(Number(parsed.send_date)).toISOString() : new Date().toISOString()
+                };
+                if (parsed.name) res.name = parsed.name;
+                messages.push(res);
             }
             if (!messages.length) throw new Error("No readable messages found");
             return messages;
@@ -641,13 +641,15 @@
         function parseLSAI(text) {
             const input = JSON.parse(text);
             if (!Array.isArray(input)) throw new Error("LSAI format must be a JSON array");
-            return input.map((msg, index) => ({
-                sender: msg.sender || (msg.role === 'assistant' ? 'character' : msg.role) || "user",
-                texts: normalizeContent(msg.texts ?? msg.content ?? ""),
-                timestamp: msg.timestamp || new Date().toISOString(),
-                name: msg.name,
-                id: msg.id || (index + 1)
-            }));
+            return input.map((msg) => {
+                const res = {
+                    sender: msg.sender || (msg.role === 'assistant' ? 'character' : msg.role) || "user",
+                    texts: normalizeContent(msg.texts ?? msg.content ?? ""),
+                    timestamp: msg.timestamp || new Date().toISOString()
+                };
+                if (msg.name) res.name = msg.name;
+                return res;
+            });
         }
 
         // === ФОРМАТТЕРЫ ===
