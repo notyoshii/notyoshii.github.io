@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Converter → LSAI</title>
+    <!-- Подключение Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Подключение шрифта IBM Plex Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'IBM Plex Mono', monospace;
+            background-color: #09090b;
+        }
+
+        /* Фоновый холст с матричным дождём */
+        .matrix-bg {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            opacity: 0.08;
+            pointer-events: none;
+        }
+
+        /* Стилизация панелей ввода и вывода под терминал */
+        .terminal-panel {
+            background-color: #0c0c10;
+            border: 1px solid #27272a;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .terminal-panel:focus-within {
+            border-color: #10b981;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+        }
+
+        /* Жестко фиксированная высота для предотвращения растягивания */
+        .fixed-panel-height {
+            height: 320px !important;
+            max-height: 320px !important;
+        }
+        @media (min-width: 1024px) {
+            .fixed-panel-height {
+                height: 460px !important;
+                max-height: 460px !important;
+            }
+        }
+
+        /* Кастомный скроллбар */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #09090b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #27272a;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3f3f46;
+        }
+
+        /* Анимация плавного появления контента */
+        .fade-in {
+            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="text-zinc-300 min-h-screen flex flex-col selection:bg-emerald-500/20 selection:text-emerald-300">
+    
+    <!-- Canvas для матрицы -->
+    <canvas id="matrix" class="matrix-bg"></canvas>
+
+    <div class="relative z-10 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col flex-grow">
+        
+        <!-- Шапка приложения (Header) + Меню переключения языков -->
+        <header class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-zinc-800 pb-6 mb-8 gap-4">
+            <div>
+                <h1 id="main-title" class="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-2 transition-all">
+                    lightshade <span class="text-emerald-400">→</span> lsai
+                </h1>
+                <p data-i18n="subtitle" class="text-xs sm:text-sm text-zinc-400">chat history structure compiler</p>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-3 self-start md:self-center">
+                <!-- Селектор языков (Адаптивные кнопки с эмодзи) -->
+                <div class="flex flex-wrap gap-1 bg-zinc-900/60 border border-zinc-800 p-1 rounded-2xl select-none">
+                    <button onclick="changeLang('en')" id="lang-en" class="px-2.5 py-1.5 rounded-xl text-xs hover:bg-zinc-800/80 transition-all duration-150 flex items-center gap-1 font-bold text-zinc-400 border border-transparent">
+                        🇬🇧 EN
+                    </button>
+                    <button onclick="changeLang('ru')" id="lang-ru" class="px-2.5 py-1.5 rounded-xl text-xs hover:bg-zinc-800/80 transition-all duration-150 flex items-center gap-1 font-bold text-zinc-400 border border-transparent">
+                        🇷🇺 RU
+                    </button>
+                    <button onclick="changeLang('vi')" id="lang-vi" class="px-2.5 py-1.5 rounded-xl text-xs hover:bg-zinc-800/80 transition-all duration-150 flex items-center gap-1 font-bold text-zinc-400 border border-transparent">
+                        🇻🇳 VI
+                    </button>
+                    <button onclick="changeLang('tr')" id="lang-tr" class="px-2.5 py-1.5 rounded-xl text-xs hover:bg-zinc-800/80 transition-all duration-150 flex items-center gap-1 font-bold text-zinc-400 border border-transparent">
+                        🇹🇷 TR
+                    </button>
+                    <button onclick="changeLang('pl')" id="lang-pl" class="px-2.5 py-1.5 rounded-xl text-xs hover:bg-zinc-800/80 transition-all duration-150 flex items-center gap-1 font-bold text-zinc-400 border border-transparent">
+                        🇵🇱 PL
+                    </button>
+                </div>
+
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span data-i18n="badge">Local & Private</span>
+                </span>
+            </div>
+        </header>
+
+        <!-- Предупреждение о приватности (Warning banner) -->
+        <div class="bg-amber-950/40 border border-amber-500/20 text-amber-200 p-4 rounded-2xl mb-8 flex gap-3.5 items-start">
+            <span class="text-lg leading-none mt-0.5">⚠️</span>
+            <div class="text-xs sm:text-sm leading-relaxed">
+                <strong data-i18n="warning_title" class="text-amber-300 font-bold">All calculations are processed completely offline inside your browser.</strong><br>
+                <span data-i18n="warning_text">Your files, prompts, and conversation data never leave your local workspace.</span>
+            </div>
+        </div>
+
+        <!-- Рабочая зона (Symmetrical two-column grid) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 flex-grow items-stretch">
+            
+            <!-- Левая колонка: Ввод (Input section) -->
+            <div class="flex flex-col gap-4 h-full">
+                <!-- Шапка колонки с переключателем режимов -->
+                <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 min-h-[44px]">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                        <h2 data-i18n="input_header" class="text-sm font-semibold tracking-wider uppercase text-zinc-400 whitespace-nowrap shrink-0">Input Data</h2>
+                        
+                        <!-- Переключатель режима ввода (Lightshade / SillyTavern) -->
+                        <div class="flex bg-zinc-900/60 border border-zinc-800 p-1 rounded-xl w-fit select-none">
+                            <button id="mode-ls" onclick="setMode('lightshade')" class="px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-200 bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">
+                                Lightshade
+                            </button>
+                            <button id="mode-st" onclick="setMode('sillytavern')" class="px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-200 hover:text-zinc-300 text-zinc-500 border border-transparent">
+                                SillyTavern
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <button onclick="loadSample()" data-i18n="sample_btn"
+                                class="text-xs px-3 py-1.5 border border-zinc-800 hover:border-zinc-600 bg-zinc-900/50 hover:bg-zinc-900 text-zinc-300 rounded-xl transition-all duration-200 whitespace-nowrap">
+                            sample
+                        </button>
+                        <button onclick="document.getElementById('fileInput').click()" data-i18n="upload_btn"
+                                class="text-xs px-3 py-1.5 border border-zinc-800 hover:border-emerald-500/50 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-400 rounded-xl transition-all duration-200 whitespace-nowrap">
+                            upload file
+                        </button>
+                        <input type="file" id="fileInput" accept=".json,.txt,.jsonl" class="hidden">
+                    </div>
+                </div>
+
+                <!-- Поле ввода исходного JSON/JSONL -->
+                <div class="terminal-panel fixed-panel-height w-full rounded-3xl overflow-hidden relative flex flex-col">
+                    <textarea id="inputArea" 
+                              class="absolute inset-0 w-full h-full p-5 bg-transparent text-sm leading-relaxed text-zinc-100 outline-none resize-none overflow-auto font-mono"
+                              spellcheck="false"
+                              data-i18n-placeholder="placeholder_input_ls"
+                              placeholder="Paste or upload your exported data file here..."></textarea>
+                </div>
+
+                <!-- Кнопки управления преобразованием (Высота 48px для выравнивания) -->
+                <div class="flex gap-3 h-[48px] shrink-0">
+                    <button onclick="convertChat()" data-i18n="compile_btn"
+                            class="flex-[2] h-full bg-emerald-500 hover:bg-emerald-400 text-zinc-950 rounded-2xl text-xs sm:text-sm font-bold tracking-wider transition-all duration-200 shadow-lg shadow-emerald-500/10 active:scale-[0.99] flex items-center justify-center text-center leading-tight">
+                        convert to lsai format
+                    </button>
+                    <button onclick="resetAll()" data-i18n="reset_btn"
+                            class="flex-1 h-full border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-white rounded-2xl text-xs sm:text-sm font-medium transition-all duration-200 text-center flex items-center justify-center">
+                        reset
+                    </button>
+                </div>
+            </div>
+
+            <!-- Правая колонка: Вывод (Output section) -->
+            <div class="flex flex-col gap-4 h-full">
+                <!-- Шапка колонки -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-h-[44px]">
+                    <h2 data-i18n="output_header" class="text-sm font-semibold tracking-wider uppercase text-zinc-400 shrink-0">LSAI JSON Output</h2>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyOutput()" id="copyBtn" disabled data-i18n="copy_btn"
+                                class="text-xs px-3 py-1.5 border border-zinc-800 hover:border-zinc-600 bg-zinc-900/50 hover:bg-zinc-900 text-zinc-300 rounded-xl transition-all duration-200 disabled:opacity-30 disabled:pointer-events-none whitespace-nowrap">
+                            copy
+                        </button>
+                        <button onclick="downloadOutput()" id="downloadBtn" disabled data-i18n="download_btn"
+                                class="text-xs px-3 py-1.5 border border-zinc-800 hover:border-emerald-500/50 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-400 rounded-xl transition-all duration-200 disabled:opacity-30 disabled:pointer-events-none whitespace-nowrap">
+                            download
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Поле вывода сконвертированного JSON -->
+                <div class="terminal-panel fixed-panel-height w-full rounded-3xl overflow-hidden relative flex flex-col bg-[#07070b]">
+                    <pre id="outputArea" 
+                         class="absolute inset-0 w-full h-full p-5 text-sm overflow-auto whitespace-pre-wrap break-all leading-relaxed text-emerald-400 font-mono"></pre>
+                    
+                    <!-- Заглушка, пока вывод пуст -->
+                    <div id="outputPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center bg-[#0c0c10]/95 pointer-events-none transition-all duration-300">
+                        <svg class="w-8 h-8 text-zinc-600 mb-2 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 00-2 2z" />
+                        </svg>
+                        <span data-i18n="placeholder_output" class="text-zinc-500 text-xs font-medium">Awaiting valid JSON data...</span>
+                    </div>
+                </div>
+
+                <!-- Индикатор системного состояния / Лог терминала (Высота 48px для выравнивания) -->
+                <div id="status" class="h-[48px] shrink-0 px-4 rounded-xl border border-zinc-900 bg-zinc-950/80 flex items-center gap-2 text-xs font-medium w-full overflow-hidden">
+                    <span class="w-2 h-2 rounded-full inline-block shrink-0 bg-zinc-500 animate-pulse"></span>
+                    <span data-i18n="status_ready" class="truncate text-zinc-400">Local terminal ready • Upload file or load demo template</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Визуальный предпросмотр чата (Visual Preview Area) -->
+        <div class="mt-8 bg-zinc-900/40 border border-zinc-800/60 rounded-3xl p-6">
+            <div class="uppercase text-[10px] tracking-wider text-zinc-500 mb-4 font-bold flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span data-i18n="preview_header">Visual Live Chat Preview (Top 4 messages)</span>
+            </div>
+            
+            <div id="chatPreview" class="space-y-3 max-h-[260px] overflow-y-auto pr-2">
+                <div data-i18n="preview_fallback" class="text-xs text-zinc-500 italic">No converted conversation loaded. Transform some data to preview dialogue bubbles...</div>
+            </div>
+        </div>
+
+        <!-- Футер -->
+        <footer id="footerText" data-i18n="footer_text" class="text-center text-zinc-600 text-xs mt-12 pb-4">
+            developed for flawless chat migrations to lsai • local execution env • v1.3.5
+        </footer>
+    </div>
+
+    <!-- Логика работы приложения -->
+    <script>
+        // Инициализация Canvas и отрисовка дождя матричных символов
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d');
+        
+        let drops = [];
+        const chars = "0101アイウエオカキクケコサシスセソﾊﾐﾑﾒﾓABCDEFGHIJKLMNOPQRSTUVWXYZ<>;[]{}()*/+-=░▒▓◆◇■□";
+        let fontSize = 14;
+        let columns = 0;
+
+        function resizeCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = window.innerWidth * dpr;
+            canvas.height = window.innerHeight * dpr;
+            canvas.style.width = window.innerWidth + 'px';
+            canvas.style.height = window.innerHeight + 'px';
+            ctx.scale(dpr, dpr);
+
+            columns = Math.floor(window.innerWidth / 18);
+            drops = Array(columns).fill().map(() => Math.random() * -30);
+        }
+        
+        let lastTime = 0;
+        const fpsInterval = 1000 / 18;
+
+        function drawMatrix(timestamp) {
+            requestAnimationFrame(drawMatrix);
+            const elapsed = timestamp - lastTime;
+            if (elapsed < fpsInterval) return;
+            lastTime = timestamp - (elapsed % fpsInterval);
+
+            ctx.fillStyle = 'rgba(9, 9, 11, 0.15)';
+            ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+            ctx.fillStyle = '#10b981';
+            ctx.font = '14px monospace';
+            
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars[Math.floor(Math.random() * chars.length)];
+                ctx.fillText(text, i * 18, drops[i] * 18);
+                if (drops[i] * 18 > window.innerHeight && Math.random() > 0.98) drops[i] = 0;
+                drops[i]++;
+            }
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        requestAnimationFrame(drawMatrix);
+
+        // Интегрированная база локализации
+        const translations = {
+            en: {
+                subtitle: "chat history structure compiler",
+                badge: "Local & Private",
+                warning_title: "All calculations are processed completely offline inside your browser.",
+                warning_text: "Your files, prompts, and conversation data never leave your local workspace.",
+                input_header: "Input Data",
+                sample_btn: "sample",
+                upload_btn: "upload file",
+                placeholder_input_ls: "Paste or upload your old Lightshade exported JSON file here...",
+                placeholder_input_st: "Paste or upload your SillyTavern JSONL file here...",
+                compile_btn: "convert to lsai format",
+                reset_btn: "reset",
+                output_header: "LSAI JSON Output",
+                copy_btn: "copy",
+                download_btn: "download",
+                placeholder_output: "Awaiting valid JSON data...",
+                preview_header: "Visual Live Chat Preview (Top 4 messages)",
+                preview_fallback: "No converted conversation loaded. Transform some data to preview dialogue bubbles...",
+                preview_empty: "Converted list is empty.",
+                footer_text: "developed for flawless chat migrations to lsai • local execution env • v1.3.5",
+                status_ready: "Local terminal ready • Upload file or load demo template",
+                status_success_sample: "Sample chat loaded successfully",
+                status_error_empty: "Paste some data inside input space first",
+                status_error_invalid: "Compilation aborted — Invalid formatting",
+                status_error_converted: "This file is already compiled in LSAI structure format",
+                status_error_unsupported: "No readable message structures detected inside",
+                status_success_convert: "Conversion success: Compiled {count} messages",
+                status_success_download: "Saved exported JSON as {file}",
+                status_success_copy: "✓ JSON copied to clipboard buffer",
+                status_reset: "Workspace refreshed",
+                status_file_loaded: "File loaded successfully",
+                status_error_txt: "Please upload a .json, .txt, or .jsonl file"
+            },
+            ru: {
+                subtitle: "компилятор структуры диалогов",
+                badge: "Локально и приватно",
+                warning_title: "Все вычисления происходят полностью локально в вашем браузере.",
+                warning_text: "Ваши файлы, промпты и данные диалогов никогда не покинут локальное рабочее пространство.",
+                input_header: "Входные данные",
+                sample_btn: "пример",
+                upload_btn: "загрузить",
+                placeholder_input_ls: "Вставьте или загрузите ваш экспортированный файл JSON из Lightshade здесь...",
+                placeholder_input_st: "Вставьте или загрузите ваш экспортированный файл JSONL из SillyTavern здесь...",
+                compile_btn: "конвертировать в lsai",
+                reset_btn: "сбросить",
+                output_header: "Вывод LSAI JSON",
+                copy_btn: "копировать",
+                download_btn: "скачать",
+                placeholder_output: "Ожидание корректных данных...",
+                preview_header: "Предпросмотр чата (первые 4 сообщения)",
+                preview_fallback: "Сконвертированный диалог не загружен. Преобразуйте данные, чтобы увидеть пузыри сообщений...",
+                preview_empty: "Список сконвертированных сообщений пуст.",
+                footer_text: "разработано для бесшовного переноса чатов в lsai • локальная среда • v1.3.5",
+                status_ready: "Локальный терминал готов • Загрузите файл или запустите пример",
+                status_success_sample: "Пример диалога успешно загружен",
+                status_error_empty: "Сначала вставьте структуру диалога в поле ввода",
+                status_error_invalid: "Компиляция отменена — некорректный формат файла",
+                status_error_converted: "Этот файл уже скомпилирован в формате структуры LSAI",
+                status_error_unsupported: "Не обнаружено читаемых структур сообщений внутри",
+                status_success_convert: "Успешная конвертация: скомпилировано {count} сообщений",
+                status_success_download: "Экспортированный JSON сохранен как {file}",
+                status_success_copy: "✓ JSON скопирован в буфер обмена",
+                status_reset: "Рабочая область сброшена",
+                status_file_loaded: "Файл успешно загружен",
+                status_error_txt: "Пожалуйста, загрузите файл .json, .jsonl или .txt"
+            },
+            vi: {
+                subtitle: "trình biên dịch cấu trúc lịch sử chat",
+                badge: "Nội bộ & Riêng tư",
+                warning_title: "Tất cả tính toán được xử lý hoàn toàn ngoại tuyến trong trình duyệt của bạn.",
+                warning_text: "Tệp tin, câu lệnh và dữ liệu cuộc trò chuyện của bạn không bao giờ rời khỏi bộ nhớ cục bộ.",
+                input_header: "Dữ liệu đầu vào",
+                sample_btn: "mẫu",
+                upload_btn: "tải lên",
+                placeholder_input_ls: "Dán hoặc tải lên tệp JSON đã xuất từ Lightshade của bạn tại đây...",
+                placeholder_input_st: "Dán hoặc tải lên tệp JSONL từ SillyTavern của bạn tại đây...",
+                compile_btn: "chuyển sang lsai",
+                reset_btn: "reset",
+                output_header: "Kết quả LSAI JSON",
+                copy_btn: "sao chép",
+                download_btn: "tải xuống",
+                placeholder_output: "Đang chờ dữ liệu hợp lệ...",
+                preview_header: "Xem trước trực quan cuộc trò chuyện (4 tin nhắn đầu tiên)",
+                preview_fallback: "Chưa có cuộc trò chuyện nào được chuyển đổi. Hãy chuyển đổi dữ liệu để xem trước...",
+                preview_empty: "Danh sách chuyển đổi trống.",
+                footer_text: "phát triển cho việc di chuyển mượt mà sang lsai • môi trường thực thi cục bộ • v1.3.5",
+                status_ready: "Thiết bị cục bộ đã sẵn sàng • Tải tệp lên hoặc chạy dữ liệu mẫu",
+                status_success_sample: "Tải cuộc trò chuyện mẫu thành công",
+                status_error_empty: "Vui lòng dán dữ liệu vào trường nhập trước",
+                status_error_invalid: "Biên dịch bị hủy — Định dạng không hợp lệ",
+                status_error_converted: "Tệp này đã được biên dịch sang định dạng cấu trúc LSAI",
+                status_error_unsupported: "Không tìm thấy cấu trúc tin nhắn hợp lệ bên trong",
+                status_success_convert: "Chuyển đổi thành công: Đã biên dịch {count} tin nhắn",
+                status_success_download: "Đã lưu tệp xuất ra dưới dạng {file}",
+                status_success_copy: "✓ Đã sao chép JSON vào bộ nhớ đệm",
+                status_reset: "Đã làm mới không gian làm việc",
+                status_file_loaded: "Tải tệp thành công",
+                status_error_txt: "Vui lòng tải lên tệp .json, .jsonl hoặc .txt"
+            },
+            tr: {
+                subtitle: "sohbet geçmişi yapısı derleyici",
+                badge: "Yerel & Gizli",
+                warning_title: "Tüm işlemler tarayıcınızda tamamen çevrimdışı olarak gerçekleştirilir.",
+                warning_text: "Dosyalarınız, komutlarınız ve konuşma verileriniz asla yerel çalışma alanınızdan dışarı çıkmaz.",
+                input_header: "Giriş Verisi",
+                sample_btn: "örnek",
+                upload_btn: "yükle",
+                placeholder_input_ls: "Eski Lightshade dışa aktarım JSON dosyanızı buraya yapıştırın veya yükleyin...",
+                placeholder_input_st: "SillyTavern dışa aktarım JSONL dosyanızı buraya yapıştırın veya yükleyin...",
+                compile_btn: "lsai'ye dönüştür",
+                reset_btn: "sıfırla",
+                output_header: "LSAI JSON Çıktısı",
+                copy_btn: "kopyala",
+                download_btn: "indir",
+                placeholder_output: "Geçerli veri bekleniyor...",
+                preview_header: "Görsel Canlı Sohbet Önizlemesi (İlk 4 mesaj)",
+                preview_fallback: "Dönüştürülmüş sohbet yüklenmedi. Konuşma balonlarını önizlemek için veriyi dönüştürün...",
+                preview_empty: "Dönüştürülen liste boş.",
+                footer_text: "sorunsuz lsai geçişleri için geliştirildi • yerel yürütme ortamı • v1.3.5",
+                status_ready: "Yerel terminal hazır • Dosya yükleyin veya örnek şablonu çalıştırın",
+                status_success_sample: "Örnek sohbet başarıyla yüklendi",
+                status_error_empty: "Lütfen önce giriş alanına veri yapıştırın",
+                status_error_invalid: "Derleme iptal edildi — Geçersiz biçimlendirme",
+                status_error_converted: "Bu dosya zaten LSAI yapısı biçiminde derlenmiş",
+                status_error_unsupported: "İçeride okunabilir mesaj yapısı bulunamadı",
+                status_success_convert: "Dönüştürme başarılı: {count} mesaj derlendi",
+                status_success_download: "Dışa aktarılan veri {file} olarak kaydedildi",
+                status_success_copy: "✓ Çıktı kopyalandı",
+                status_reset: "Çalışma alanı yenilendi",
+                status_file_loaded: "Dosya başarıyla yüklendi",
+                status_error_txt: "Lütfen bir .json, .jsonl veya .txt dosyası yükleyin"
+            },
+            pl: {
+                subtitle: "kompilator struktury historii czatu",
+                badge: "Lokalnie & Prywatnie",
+                warning_title: "Wszystkie obliczenia są przetwarzane całkowicie offline w Twojej przeglądarce.",
+                warning_text: "Twoje pliki, prompty i dane konwersacji nigdy nie opuszczają lokalnego obszaru roboczego.",
+                input_header: "Dane wejściowe",
+                sample_btn: "przykład",
+                upload_btn: "prześlij",
+                placeholder_input_ls: "Wklej lub prześlij swój stary plik JSON wyeksportowany z Lightshade...",
+                placeholder_input_st: "Wklej lub prześlij swój plik JSONL z SillyTavern tutaj...",
+                compile_btn: "konwertuj do lsai",
+                reset_btn: "reset",
+                output_header: "Wynik LSAI JSON",
+                copy_btn: "kopiuj",
+                download_btn: "pobierz",
+                placeholder_output: "Oczekiwanie na poprawne dane...",
+                preview_header: "Wizualny podgląd czatu na żywo (4 pierwsze wiadomości)",
+                preview_fallback: "Brak skonwertowanej konwersacji. Przetwórz dane, aby zobaczyć podgląd bąbelków czatu...",
+                preview_empty: "Skonwertowana lista jest pusta.",
+                footer_text: "stworzone z myślą o bezproblemowej migracji do lsai • lokalne środowisko wykonawcze • v1.3.5",
+                status_ready: "Lokalny terminal gotowy • Prześlij plik lub załaduj szablon demo",
+                status_success_sample: "Pomyślnie załadowano przykładowy czat",
+                status_error_empty: "Najpierw wklej dane do pola wejściowego",
+                status_error_invalid: "Kompilacja przerwana — Nieprawidłowy format",
+                status_error_converted: "Ten plik jest już skompilowany w formacie struktury LSAI",
+                status_error_unsupported: "Nie wykryto poprawnych struktur wiadomości w środku",
+                status_success_convert: "Konwersja powiodła się: Skompilowano {count} wiadomości",
+                status_success_download: "Zapisano wyeksportowany plik jako {file}",
+                status_success_copy: "✓ Skopiowano do schowka",
+                status_reset: "Obszar roboczy został odświeżony",
+                status_file_loaded: "Plik został pomyślnie załadowany",
+                status_error_txt: "Prześlij plik z rozszerzeniem .json, .jsonl lub .txt"
+            }
+        };
+
+        // Состояния
+        let currentLang = 'en';
+        let currentMode = 'lightshade'; // 'lightshade' or 'sillytavern'
+        let currentConverted = null;
+        let activeFileName = "chat.json";
+
+        // Образцы чатов
+        const sampleChatLightshade = {
+            "character": "Math Assistant",
+            "created_at": "2026-06-16T12:00:00Z",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "Hello! Can you help me find the derivative of the function f(x) = x^3 + 2x^2 - 5x + 7?",
+                    "timestamp": "2026-06-16T12:01:23Z"
+                },
+                {
+                    "role": "assistant",
+                    "content": "Of course! Let's solve this step by step.\n\nf'(x) = 3x^2 + 4x - 5",
+                    "timestamp": "2026-06-16T12:02:45Z"
+                }
+            ]
+        };
+
+        const sampleChatSillyTavern = 
+`{"user_name":"You","character_name":"N and Uzi","create_date":1781628066826}
+{"name":"N and Uzi","is_user":false,"is_name":true,"send_date":1781628066826,"mes":"***Your parents weren’t good to you. They would do things like abuse you and stuff.. One day, you talked back to them..***\\n\\n*N*: “Biscuits! Uzi! They are awake!”"}
+{"name":"You","is_user":true,"is_name":true,"send_date":1781628066826,"mes":"*Alex looked at the... Robots? They looked like some kind of futuristic robots.*\\n\\n*Alex*: \\"Umm... I think so... Who are you?\\""}`;
+
+        // Смена режима ввода (Lightshade <-> SillyTavern)
+        function setMode(mode) {
+            currentMode = mode;
+            const btnLs = document.getElementById('mode-ls');
+            const btnSt = document.getElementById('mode-st');
+            const mainTitle = document.getElementById('main-title');
+            
+            if (mode === 'lightshade') {
+                btnLs.className = "px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-200 bg-emerald-500/20 text-emerald-400 border border-emerald-500/20";
+                btnSt.className = "px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-200 hover:text-zinc-300 text-zinc-500 border border-transparent";
+                mainTitle.innerHTML = `lightshade <span class="text-emerald-400">→</span> lsai`;
+                document.getElementById('inputArea').setAttribute('placeholder', getI18nStr('placeholder_input_ls'));
+            } else {
+                btnSt.className = "px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-200 bg-emerald-500/20 text-emerald-400 border border-emerald-500/20";
+                btnLs.className = "px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-200 hover:text-zinc-300 text-zinc-500 border border-transparent";
+                mainTitle.innerHTML = `silly tavern <span class="text-emerald-400">→</span> lsai`;
+                document.getElementById('inputArea').setAttribute('placeholder', getI18nStr('placeholder_input_st'));
+            }
+            
+            // Сброс при смене режима
+            if (document.getElementById('inputArea').value.trim() !== '') {
+                resetAll();
+            }
+        }
+
+        // Функция изменения активного языка интерфейса
+        function changeLang(lang) {
+            currentLang = lang;
+            
+            const languages = ['en', 'ru', 'vi', 'tr', 'pl'];
+            languages.forEach(l => {
+                const btn = document.getElementById(`lang-${l}`);
+                if (l === lang) {
+                    btn.className = "px-2.5 py-1.5 rounded-xl text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1 font-bold transition-all duration-150";
+                } else {
+                    btn.className = "px-2.5 py-1.5 rounded-xl text-xs hover:bg-zinc-800/80 text-zinc-400 border border-transparent flex items-center gap-1 font-bold transition-all duration-150";
+                }
+            });
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang] && translations[lang][key]) {
+                    el.textContent = translations[lang][key];
+                }
+            });
+
+            // Обновление плейсхолдера в зависимости от языка и режима
+            const placeholderKey = currentMode === 'lightshade' ? 'placeholder_input_ls' : 'placeholder_input_st';
+            document.getElementById('inputArea').setAttribute('placeholder', getI18nStr(placeholderKey));
+
+            if (currentConverted) {
+                renderLiveChatPreview(currentConverted);
+                showStatus(getI18nStr('status_success_convert', { count: currentConverted.length }), 'success');
+            } else {
+                showStatus(getI18nStr('status_ready'));
+                const previewFallback = document.querySelector('[data-i18n="preview_fallback"]');
+                if (previewFallback) previewFallback.textContent = translations[lang]['preview_fallback'];
+            }
+        }
+
+        function getI18nStr(key, args = {}) {
+            let str = translations[currentLang][key] || translations['en'][key] || '';
+            for (const [k, v] of Object.entries(args)) {
+                str = str.replace(`{${k}}`, v);
+            }
+            return str;
+        }
+
+        function showStatus(msg, type = 'neutral') {
+            const status = document.getElementById('status');
+            status.innerHTML = '';
+            
+            const dot = document.createElement('span');
+            dot.className = "w-2 h-2 rounded-full inline-block shrink-0";
+            
+            const textSpan = document.createElement('span');
+            textSpan.className = "truncate"; // Предотвращает переполнение статусной строки
+            textSpan.textContent = msg;
+
+            if (type === 'success') {
+                dot.className += " bg-emerald-400";
+                status.style.color = '#34d399';
+                status.style.borderColor = 'rgba(16, 185, 129, 0.2)';
+                status.style.backgroundColor = 'rgba(16, 185, 129, 0.05)';
+            } else if (type === 'error') {
+                dot.className += " bg-rose-400";
+                status.style.color = '#f87171';
+                status.style.borderColor = 'rgba(244, 63, 94, 0.2)';
+                status.style.backgroundColor = 'rgba(244, 63, 94, 0.05)';
+            } else {
+                dot.className += " bg-zinc-500 animate-pulse";
+                status.style.color = '#a1a1aa';
+                status.style.borderColor = '#27272a';
+                status.style.backgroundColor = '#0c0c10';
+            }
+
+            status.appendChild(dot);
+            status.appendChild(textSpan);
+            status.classList.add('fade-in');
+            setTimeout(() => status.classList.remove('fade-in'), 400);
+        }
+        
+        function loadSample() {
+            activeFileName = "sample-converted.json";
+            if (currentMode === 'lightshade') {
+                document.getElementById('inputArea').value = JSON.stringify(sampleChatLightshade, null, 2);
+            } else {
+                document.getElementById('inputArea').value = sampleChatSillyTavern;
+            }
+            convertChat();
+            showStatus(getI18nStr('status_success_sample'), "success");
+        }
+        
+        function normalizeContent(value) {
+            if (Array.isArray(value)) return value.map(v => typeof v === 'string' ? v : JSON.stringify(v));
+            if (typeof value === 'string') return [value];
+            if (value === null || value === undefined) return [""];
+            return [typeof value === 'object' ? JSON.stringify(value) : String(value)];
+        }
+
+        // Парсинг Lightshade
+        function transformLightshadeToLSAI(input) {
+            let messages = [];
+            if (Array.isArray(input)) messages = input;
+            else if (input && input.messages && Array.isArray(input.messages)) messages = input.messages;
+            else throw new Error("Target chat messages array could not be compiled");
+            
+            return messages.map((msg, index) => {
+                const sender = (msg.role === "assistant" || msg.sender === "assistant") ? "character" : (msg.sender || msg.role || "user");
+                const texts = normalizeContent(msg.content ?? msg.texts ?? "");
+                const timestamp = msg.timestamp || msg.created_at || new Date().toISOString();
+                return { sender, texts, timestamp, name: msg.name, id: msg.id || (index + 1) };
+            });
+        }
+
+        // Парсинг SillyTavern JSONL
+        function transformSillyTavernToLSAI(inputText) {
+            const lines = inputText.split('\n').map(l => l.trim()).filter(l => l);
+            const messages = [];
+            let idCounter = 1;
+
+            for (const line of lines) {
+                try {
+                    const parsed = JSON.parse(line);
+                    if (parsed.mes === undefined) continue; // Игнорируем метаданные без сообщения
+
+                    const sender = parsed.is_user ? "user" : "character";
+                    const texts = normalizeContent(parsed.mes);
+                    let timestamp = new Date().toISOString();
+                    if (parsed.send_date) timestamp = new Date(Number(parsed.send_date)).toISOString();
+
+                    messages.push({
+                        sender,
+                        texts,
+                        timestamp,
+                        name: parsed.name || undefined,
+                        id: idCounter++
+                    });
+                } catch(e) {
+                    console.warn("Skipped malformed JSONL line", e);
+                }
+            }
+            if (messages.length === 0) throw new Error("No readable messages found in JSONL");
+            return messages;
+        }
+        
+        function convertChat() {
+            const inputText = document.getElementById('inputArea').value.trim();
+            const outputArea = document.getElementById('outputArea');
+            const placeholder = document.getElementById('outputPlaceholder');
+            
+            if (!inputText) {
+                showStatus(getI18nStr('status_error_empty'), "error");
+                return;
+            }
+            
+            try {
+                let converted;
+                if (currentMode === 'lightshade') {
+                    const parsed = JSON.parse(inputText);
+                    if (Array.isArray(parsed) && parsed.length > 0 && ('sender' in parsed[0] || 'texts' in parsed[0])) {
+                        showStatus(getI18nStr('status_error_converted'), "error");
+                        return;
+                    }
+                    converted = transformLightshadeToLSAI(parsed);
+                } else {
+                    converted = transformSillyTavernToLSAI(inputText);
+                }
+
+                currentConverted = converted;
+                outputArea.textContent = JSON.stringify(converted, null, 2);
+                placeholder.classList.add('hidden');
+                outputArea.classList.add('fade-in');
+                setTimeout(() => outputArea.classList.remove('fade-in'), 400);
+                
+                document.getElementById('downloadBtn').disabled = false;
+                document.getElementById('copyBtn').disabled = false;
+                
+                renderLiveChatPreview(converted);
+                showStatus(getI18nStr('status_success_convert', { count: converted.length }), "success");
+            } catch (e) {
+                showStatus("Transformation failed: " + e.message, "error");
+            }
+        }
+
+        function renderLiveChatPreview(messages) {
+            const container = document.getElementById('chatPreview');
+            container.innerHTML = '';
+            
+            const sliceCount = messages.slice(0, 4);
+            if (!sliceCount.length) {
+                container.innerHTML = `<div class="text-xs text-zinc-500 italic">${getI18nStr('preview_empty')}</div>`;
+                return;
+            }
+
+            sliceCount.forEach(msg => {
+                const bubble = document.createElement('div');
+                bubble.className = "flex flex-col max-w-[85%] rounded-3xl p-4 gap-1.5 transition-all duration-200 border fade-in";
+                
+                if (msg.sender === 'character') {
+                    bubble.className += " bg-emerald-950/20 border-emerald-500/20 text-zinc-200 self-start";
+                } else {
+                    bubble.className += " bg-zinc-900/60 border-zinc-800 text-zinc-300 self-end ml-auto";
+                }
+
+                const roleColor = msg.sender === 'character' ? 'text-emerald-400' : 'text-zinc-400';
+                const timeStr = msg.timestamp ? `<span class="text-[9px] text-zinc-500 font-normal select-none">${msg.timestamp.split('T')[0] || ''}</span>` : '';
+                const nameStr = msg.name ? `<span class="text-[9px] font-bold text-zinc-300 ml-1">(${msg.name})</span>` : '';
+
+                bubble.innerHTML = `
+                    <div class="flex items-center gap-2 select-none">
+                        <span class="text-[10px] font-bold uppercase tracking-wider ${roleColor}">${msg.sender} ${nameStr}</span>
+                        ${timeStr}
+                    </div>
+                    <p class="text-xs leading-relaxed whitespace-pre-wrap">${msg.texts[0] || ''}</p>
+                `;
+                container.appendChild(bubble);
+            });
+        }
+        
+        function downloadOutput() {
+            if (!currentConverted) return;
+            const blob = new Blob([JSON.stringify(currentConverted, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = activeFileName;
+            a.click();
+            URL.revokeObjectURL(url);
+            showStatus(getI18nStr('status_success_download', { file: activeFileName }), "success");
+        }
+        
+        function copyOutput() {
+            if (!currentConverted) return;
+            const copyBtn = document.getElementById('copyBtn');
+            navigator.clipboard.writeText(JSON.stringify(currentConverted, null, 2)).then(() => {
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = "✓ copied";
+                copyBtn.style.color = '#34d399';
+                copyBtn.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+                
+                showStatus(getI18nStr('status_success_copy'), "success");
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                    copyBtn.style.color = '';
+                    copyBtn.style.borderColor = '';
+                }, 1800);
+            });
+        }
+        
+        function resetAll() {
+            document.getElementById('inputArea').value = '';
+            document.getElementById('outputArea').textContent = '';
+            document.getElementById('outputPlaceholder').classList.remove('hidden');
+            currentConverted = null;
+            activeFileName = "chat.json";
+            
+            document.getElementById('downloadBtn').disabled = true;
+            document.getElementById('copyBtn').disabled = true;
+            
+            document.getElementById('chatPreview').innerHTML = `<div class="text-xs text-zinc-500 italic">${getI18nStr('preview_fallback')}</div>`;
+            showStatus(getI18nStr('status_reset'));
+        }
+        
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const ext = file.name.toLowerCase();
+            if (!ext.endsWith('.json') && !ext.endsWith('.txt') && !ext.endsWith('.jsonl')) {
+                showStatus(getI18nStr('status_error_txt'), "error");
+                return;
+            }
+
+            // Автоматическое переключение режима на SillyTavern если файл JSONL
+            if (ext.endsWith('.jsonl') && currentMode !== 'sillytavern') {
+                setMode('sillytavern');
+            }
+
+            activeFileName = file.name.replace(/\.(json|jsonl|txt)$/i, "") + "-lsai-export.json";
+            
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                document.getElementById('inputArea').value = ev.target.result;
+                convertChat();
+            };
+            reader.readAsText(file);
+        });
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); convertChat(); }
+            if (e.key === 'Escape') { e.preventDefault(); resetAll(); }
+        });
+        
+        // Начальный запуск
+        changeLang('en');
+    </script>
+</body>
+</html>
