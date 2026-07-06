@@ -4,266 +4,332 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>chat-to-chat</title>
-    <!-- Подключение Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Подключение шрифта IBM Plex Mono -->
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'IBM Plex Mono', monospace;
-            background-color: #09090b;
-        }
+        *, *::before, *::after { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; }
+        textarea, pre { background: transparent; outline: none; resize: none; font-family: inherit; }
+        .matrix-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; transition: opacity 0.6s; }
+        .fixed-panel-height { height: 320px !important; max-height: 320px !important; }
+        @media (min-width: 1024px) { .fixed-panel-height { height: 460px !important; max-height: 460px !important; } }
 
-        /* Фоновый холст с матричным дождём */
-        .matrix-bg {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 0;
-            opacity: 0.08;
-            pointer-events: none;
-        }
+        /* ===== MATRIX THEME ===== */
+        body.theme-matrix { font-family: 'IBM Plex Mono', monospace; background: #09090b; color: #d4d4d8; }
+        body.theme-matrix .matrix-bg { opacity: 0.08; }
+        body.theme-matrix .title-text { color: #fff; }
+        body.theme-matrix .title-arrow { color: #34d399; }
+        body.theme-matrix .subtitle-text { color: #71717a; }
+        body.theme-matrix .header-border { border-color: #27272a; }
+        body.theme-matrix .warning-box { background: rgba(113,63,18,0.15); border: 1px solid rgba(180,83,9,0.2); border-radius: 16px; }
+        body.theme-matrix .panel { background: #0c0c10; border: 1px solid #27272a; border-radius: 24px; }
+        body.theme-matrix .panel:focus-within { border-color: #10b981; box-shadow: 0 0 15px rgba(16,185,129,0.15); }
+        body.theme-matrix .seg-container { background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 4px; }
+        body.theme-matrix .seg-btn { padding: 6px 14px; border-radius: 8px; font-size: 11px; font-weight: 700; border: 1px solid transparent; background: transparent; color: #71717a; cursor: pointer; transition: all 0.2s; }
+        body.theme-matrix .seg-btn:hover { color: #d4d4d8; }
+        body.theme-matrix .seg-btn.active { background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.25); color: #34d399; }
+        body.theme-matrix .action-btn { border: 1px solid #27272a; background: #18181b; color: #d4d4d8; border-radius: 16px; cursor: pointer; transition: all 0.2s; font-weight: 600; }
+        body.theme-matrix .action-btn:hover { background: #27272a; }
+        body.theme-matrix .action-btn:disabled { opacity: 0.3; pointer-events: none; }
+        body.theme-matrix .action-btn-primary { background: #10b981; border: 1px solid #059669; color: #022c22; font-weight: 700; border-radius: 16px; cursor: pointer; transition: all 0.2s; }
+        body.theme-matrix .action-btn-primary:hover { background: #34d399; }
+        body.theme-matrix .action-btn-danger { border: 1px solid #27272a; background: #18181b; color: #d4d4d8; border-radius: 16px; cursor: pointer; transition: all 0.2s; }
+        body.theme-matrix .action-btn-danger:hover { background: #27272a; }
+        body.theme-matrix .action-btn-accent { border: 1px solid rgba(16,185,129,0.2); background: rgba(16,185,129,0.08); color: #34d399; border-radius: 16px; cursor: pointer; transition: all 0.2s; }
+        body.theme-matrix .action-btn-accent:hover { background: rgba(16,185,129,0.15); }
+        body.theme-matrix .action-btn-accent:disabled { opacity: 0.3; pointer-events: none; }
+        body.theme-matrix .preview-box { background: rgba(24,24,27,0.4); border: 1px solid rgba(39,39,42,0.6); border-radius: 24px; }
+        body.theme-matrix .status-bar { background: rgba(9,9,11,0.8); border: 1px solid #18181b; border-radius: 12px; }
+        body.theme-matrix .output-text { color: #34d399; }
+        body.theme-matrix #outputPlaceholder { background: rgba(7,7,11,0.95); }
+        body.theme-matrix .menu-btn { background: #18181b; border: 1px solid #27272a; border-radius: 12px; cursor: pointer; transition: all 0.2s; }
+        body.theme-matrix .menu-btn:hover { background: #27272a; border-color: #3f3f46; }
+        body.theme-matrix .hamburger span { background: #a1a1aa; }
+        body.theme-matrix .menu-dropdown { background: #0c0c10; border: 1px solid #27272a; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.6); }
+        body.theme-matrix .menu-label { color: #52525b; }
+        body.theme-matrix .menu-opt { background: transparent; border: 1px solid transparent; color: #71717a; border-radius: 8px; cursor: pointer; transition: all 0.15s; }
+        body.theme-matrix .menu-opt:hover { background: #18181b; color: #d4d4d8; }
+        body.theme-matrix .menu-opt.active { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.25); color: #34d399; }
+        body.theme-matrix .menu-divider { background: #27272a; }
+        body.theme-matrix .badge-pill { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #34d399; }
+        body.theme-matrix ::-webkit-scrollbar { width: 8px; }
+        body.theme-matrix ::-webkit-scrollbar-track { background: #09090b; }
+        body.theme-matrix ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
 
-        /* Стилизация панелей ввода и вывода под терминал */
-        .terminal-panel {
-            background-color: #0c0c10;
-            border: 1px solid #27272a;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+        /* ===== SKEUOMORPHIC THEME ===== */
+        body.theme-skeuomorphic { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #1c1c1e; color: #e5e5ea; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E"); }
+        body.theme-skeuomorphic .matrix-bg { opacity: 0; }
+        body.theme-skeuomorphic .title-text { color: #fff; text-shadow: 0 1px 0 rgba(0,0,0,0.5); }
+        body.theme-skeuomorphic .title-arrow { color: #34c759; }
+        body.theme-skeuomorphic .subtitle-text { color: #8e8e93; }
+        body.theme-skeuomorphic .header-border { border-color: #3a3a3c; }
+        body.theme-skeuomorphic .warning-box { background: linear-gradient(to bottom, #4a3520, #3a2a18); border: 1px solid rgba(180,120,40,0.4); border-radius: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 6px rgba(0,0,0,0.3); }
+        body.theme-skeuomorphic .panel-input { background-color: #1a1a1c; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E"); border: 1px solid #3a3a3c; border-radius: 12px; box-shadow: inset 0 2px 6px rgba(0,0,0,0.5), inset 0 0 14px rgba(0,0,0,0.2); }
+        body.theme-skeuomorphic .panel-input:focus-within { border-color: #34c759; box-shadow: inset 0 2px 6px rgba(0,0,0,0.5), 0 0 14px rgba(52,199,89,0.2); }
+        body.theme-skeuomorphic .panel-output { background-color: #242426; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E"); border: 1px solid #48484a; border-radius: 12px; box-shadow: inset 0 2px 6px rgba(0,0,0,0.4); }
+        body.theme-skeuomorphic .seg-container { background: linear-gradient(to bottom, #1a1a1c, #2a2a2c); border: 1px solid #3a3a3c; border-radius: 8px; padding: 2px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.4); }
+        body.theme-skeuomorphic .seg-btn { padding: 6px 14px; border-radius: 6px; font-size: 11px; font-weight: 700; border: 1px solid transparent; background: transparent; color: #8e8e93; cursor: pointer; transition: all 0.2s; }
+        body.theme-skeuomorphic .seg-btn:hover { color: #c7c7cc; }
+        body.theme-skeuomorphic .seg-btn:active { transform: scale(0.97); }
+        body.theme-skeuomorphic .seg-btn.active { background: linear-gradient(to bottom, #4cd964, #34c759); border: 1px solid rgba(0,80,30,0.7); color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2); text-shadow: 0 -1px 0 rgba(0,0,0,0.2); }
+        body.theme-skeuomorphic .action-btn { position: relative; border-radius: 8px; font-weight: 700; border: 1px solid rgba(255,255,255,0.12); background: linear-gradient(to bottom, #3a3a3c, #2c2c2e 50%, #222224); color: #e5e5ea; box-shadow: 0 1px 3px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08); cursor: pointer; transition: all 0.15s; overflow: hidden; }
+        body.theme-skeuomorphic .action-btn::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 50%; background: linear-gradient(to bottom, rgba(255,255,255,0.12), rgba(255,255,255,0.02)); border-radius: 7px 7px 50% 50%; pointer-events: none; }
+        body.theme-skeuomorphic .action-btn:hover { background: linear-gradient(to bottom, #48484a, #3a3a3c); }
+        body.theme-skeuomorphic .action-btn:active { transform: scale(0.97); }
+        body.theme-skeuomorphic .action-btn:disabled { opacity: 0.3; pointer-events: none; }
+        body.theme-skeuomorphic .action-btn-primary { position: relative; border-radius: 8px; font-weight: 700; border: 1px solid rgba(0,80,30,0.8); background: linear-gradient(to bottom, #4cd964, #34c759 50%, #28a745); color: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.3); cursor: pointer; transition: all 0.15s; overflow: hidden; text-shadow: 0 -1px 0 rgba(0,0,0,0.25); }
+        body.theme-skeuomorphic .action-btn-primary::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 50%; background: linear-gradient(to bottom, rgba(255,255,255,0.35), rgba(255,255,255,0.08)); border-radius: 7px 7px 50% 50%; pointer-events: none; }
+        body.theme-skeuomorphic .action-btn-primary:hover { background: linear-gradient(to bottom, #5ae078, #4cd964 50%, #34c759); }
+        body.theme-skeuomorphic .action-btn-primary:active { transform: scale(0.97); }
+        body.theme-skeuomorphic .action-btn-danger { position: relative; border-radius: 8px; font-weight: 600; border: 1px solid rgba(180,30,30,0.6); background: linear-gradient(to bottom, #ff6b6b, #ff3b30 50%, #d0302a); color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.25); cursor: pointer; transition: all 0.15s; overflow: hidden; text-shadow: 0 -1px 0 rgba(0,0,0,0.25); }
+        body.theme-skeuomorphic .action-btn-danger::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 50%; background: linear-gradient(to bottom, rgba(255,255,255,0.28), rgba(255,255,255,0.05)); border-radius: 7px 7px 50% 50%; pointer-events: none; }
+        body.theme-skeuomorphic .action-btn-danger:active { transform: scale(0.97); }
+        body.theme-skeuomorphic .action-btn-accent { position: relative; border-radius: 8px; font-weight: 700; border: 1px solid rgba(0,90,210,0.6); background: linear-gradient(to bottom, #4da3ff, #007aff 50%, #0060d0); color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.25); cursor: pointer; transition: all 0.15s; overflow: hidden; text-shadow: 0 -1px 0 rgba(0,0,0,0.25); }
+        body.theme-skeuomorphic .action-btn-accent::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 50%; background: linear-gradient(to bottom, rgba(255,255,255,0.28), rgba(255,255,255,0.05)); border-radius: 7px 7px 50% 50%; pointer-events: none; }
+        body.theme-skeuomorphic .action-btn-accent:hover { background: linear-gradient(to bottom, #6bb5ff, #4da3ff 50%, #007aff); }
+        body.theme-skeuomorphic .action-btn-accent:active { transform: scale(0.97); }
+        body.theme-skeuomorphic .action-btn-accent:disabled { opacity: 0.3; pointer-events: none; }
+        body.theme-skeuomorphic .preview-box { background: linear-gradient(to bottom, #2c2c2e, #242426); border: 1px solid #48484a; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+        body.theme-skeuomorphic .status-bar { background: linear-gradient(to bottom, #2c2c2e, #242426); border: 1px solid #48484a; border-radius: 8px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05); }
+        body.theme-skeuomorphic .output-text { color: #34c759; }
+        body.theme-skeuomorphic #outputPlaceholder { background: rgba(36,36,38,0.95); }
+        body.theme-skeuomorphic .menu-btn { background: linear-gradient(to bottom, #3a3a3c, #2c2c2e); border: 1px solid #48484a; border-radius: 10px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08); transition: all 0.2s; }
+        body.theme-skeuomorphic .menu-btn:hover { background: linear-gradient(to bottom, #48484a, #3a3a3c); }
+        body.theme-skeuomorphic .menu-btn:active { transform: scale(0.95); }
+        body.theme-skeuomorphic .hamburger span { background: #e5e5ea; }
+        body.theme-skeuomorphic .menu-dropdown { background: linear-gradient(to bottom, #2c2c2e, #242426); border: 1px solid #48484a; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.6); }
+        body.theme-skeuomorphic .menu-label { color: #636366; }
+        body.theme-skeuomorphic .menu-opt { background: transparent; border: 1px solid transparent; color: #8e8e93; border-radius: 6px; cursor: pointer; transition: all 0.15s; }
+        body.theme-skeuomorphic .menu-opt:hover { background: rgba(255,255,255,0.05); color: #c7c7cc; }
+        body.theme-skeuomorphic .menu-opt.active { background: linear-gradient(to bottom, #4cd964, #34c759); border: 1px solid rgba(0,80,30,0.7); color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        body.theme-skeuomorphic .menu-divider { background: #3a3a3c; }
+        body.theme-skeuomorphic .badge-pill { background: linear-gradient(to bottom, #34c759, #28a745); border: 1px solid rgba(0,80,30,0.6); color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3); text-shadow: 0 -1px 0 rgba(0,0,0,0.2); }
+        body.theme-skeuomorphic ::-webkit-scrollbar { width: 10px; }
+        body.theme-skeuomorphic ::-webkit-scrollbar-track { background: #1a1a1c; border-radius: 5px; }
+        body.theme-skeuomorphic ::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, #48484a, #3a3a3c); border-radius: 5px; border: 1px solid #2c2c2e; }
 
-        .terminal-panel:focus-within {
-            border-color: #10b981;
-            box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
-        }
+        /* ===== SHARED: HAMBURGER ===== */
+        .hamburger { display: flex; flex-direction: column; gap: 4px; width: 18px; justify-content: center; }
+        .hamburger span { display: block; width: 100%; height: 2px; border-radius: 1px; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); transform-origin: center; }
+        .menu-open .hamburger span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+        .menu-open .hamburger span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+        .menu-open .hamburger span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 
-        /* Жестко фиксированная высота для предотвращения растягивания */
-        .fixed-panel-height {
-            height: 320px !important;
-            max-height: 320px !important;
-        }
-        @media (min-width: 1024px) {
-            .fixed-panel-height {
-                height: 460px !important;
-                max-height: 460px !important;
-            }
-        }
+        /* ===== SHARED: MENU DROPDOWN ===== */
+        .menu-dropdown { position: absolute; top: calc(100% + 8px); right: 0; width: 260px; padding: 16px; z-index: 100; opacity: 0; transform: translateY(-8px) scale(0.96); pointer-events: none; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+        .menu-dropdown.open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+        .menu-section { margin-bottom: 12px; }
+        .menu-section:last-child { margin-bottom: 0; }
+        .menu-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+        .menu-opts { display: flex; flex-wrap: wrap; gap: 4px; }
+        .menu-opt { padding: 5px 10px; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+        .menu-divider { height: 1px; margin: 12px 0; }
 
-        /* Кастомный скроллбар */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #09090b;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #27272a;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #3f3f46;
-        }
+        /* ===== SHARED: BADGE ===== */
+        .badge-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+        .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: badgePulse 2s ease-in-out infinite; }
+        @keyframes badgePulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
-        /* Анимация плавного появления контента */
-        .fade-in {
-            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        /* ===== ANIMATIONS ===== */
+        .fade-in { animation: fadeIn 0.4s cubic-bezier(0.16,1,0.3,1) forwards; }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        .ios6-spring { animation: ios6Spring 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+        @keyframes ios6Spring { 0%{opacity:0;transform:translateY(16px) scale(.96)} 60%{transform:translateY(-2px) scale(1.01)} 100%{opacity:1;transform:translateY(0) scale(1)} }
+        .ios6-slide-up { animation: ios6SlideUp 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+        @keyframes ios6SlideUp { 0%{opacity:0;transform:translateY(30px)} 100%{opacity:1;transform:translateY(0)} }
+        .theme-transition { animation: themeTransition 0.4s ease; }
+        @keyframes themeTransition { 0%{opacity:.7} 100%{opacity:1} }
     </style>
 </head>
-<body class="text-zinc-300 min-h-screen flex flex-col selection:bg-emerald-500/20 selection:text-emerald-300">
-    
-    <!-- Canvas для матрицы -->
+<body class="min-h-screen flex flex-col theme-matrix">
+
     <canvas id="matrix" class="matrix-bg"></canvas>
 
-    <div class="relative z-10 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col flex-grow">
-        
-        <!-- Шапка приложения (Header) + Меню переключения языков -->
-        <header class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-zinc-800 pb-6 mb-8 gap-4">
-            <div>
-                <h1 id="main-title" class="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-2 transition-all">
-                    lightshade <span class="text-emerald-400">→</span> lsai
-                </h1>
-                <p data-i18n="subtitle" class="text-xs sm:text-sm text-zinc-400">chat history structure compiler</p>
-            </div>
-            
-            <div class="flex flex-wrap items-center gap-3 self-start md:self-center">
-                <!-- Селектор языков (Адаптивные кнопки с эмодзи) -->
-                <div class="flex flex-wrap gap-1 bg-zinc-900/60 border border-zinc-800 p-1 rounded-2xl select-none">
-                    <button onclick="changeLang('en')" id="lang-en" class="px-2.5 py-1.5 rounded-xl text-xs hover:bg-zinc-800/80 transition-all duration-150 flex items-center gap-1 font-bold text-zinc-400 border border-transparent">
-                        🇬🇧 EN
-                    </button>
-                    <button onclick="changeLang('ru')" id="lang-ru" class="px-2.5 py-1.5 rounded-xl text-xs hover:bg-zinc-800/80 transition-all duration-150 flex items-center gap-1 font-bold text-zinc-400 border border-transparent">
-                        🇷🇺 RU
-                    </button>
-                    <button onclick="changeLang('vi')" id="lang-vi" class="px-2.5 py-1.5 rounded-xl text-xs hover:bg-zinc-800/80 transition-all duration-150 flex items-center gap-1 font-bold text-zinc-400 border border-transparent">
-                        🇻🇳 VI
-                    </button>
-                    <button onclick="changeLang('tr')" id="lang-tr" class="px-2.5 py-1.5 rounded-xl text-xs hover:bg-zinc-800/80 transition-all duration-150 flex items-center gap-1 font-bold text-zinc-400 border border-transparent">
-                        🇹🇷 TR
-                    </button>
-                    <button onclick="changeLang('pl')" id="lang-pl" class="px-2.5 py-1.5 rounded-xl text-xs hover:bg-zinc-800/80 transition-all duration-150 flex items-center gap-1 font-bold text-zinc-400 border border-transparent">
-                        🇵🇱 PL
-                    </button>
-                </div>
 
-                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span data-i18n="badge">Local & Private</span>
-                </span>
+
+    <div class="relative z-10 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col flex-grow theme-transition">
+
+        <header class="flex flex-col md:flex-row md:items-center md:justify-between header-border border-b pb-6 mb-8 gap-4">
+            <div>
+                <h1 id="main-title" class="text-2xl sm:text-3xl font-bold title-text tracking-tight flex items-center gap-2 transition-all">
+                    lightshade <span class="title-arrow">→</span> lsai
+                </h1>
+                <p data-i18n="subtitle" class="text-xs sm:text-sm subtitle-text">chat history structure compiler</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3 self-start md:self-center">
+                <span class="badge-pill"><span class="badge-dot"></span><span data-i18n="badge">Local & Private</span></span>
+                <div style="position:relative;">
+                    <button id="menuBtn" class="menu-btn" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;" aria-label="Menu" aria-expanded="false" role="button" onclick="toggleMenu()">
+                        <div class="hamburger"><span></span><span></span><span></span></div>
+                    </button>
+                    <div id="menuDropdown" class="menu-dropdown">
+                        <div class="menu-section">
+                            <div class="menu-label">Theme</div>
+                            <div class="menu-opts">
+                                <button onclick="setTheme('matrix')" data-theme-opt="matrix" class="menu-opt active">🔮 Matrix</button>
+                                <button onclick="setTheme('skeuomorphic')" data-theme-opt="skeuomorphic" class="menu-opt">📱 Skeuomorphic</button>
+
+                            </div>
+                        </div>
+                        <div class="menu-divider"></div>
+                        <div class="menu-section">
+                            <div class="menu-label">Language</div>
+                            <div class="menu-opts">
+                                <button onclick="changeLang('en')" data-lang="en" class="menu-opt active">🇬🇧 EN</button>
+                                <button onclick="changeLang('ru')" data-lang="ru" class="menu-opt">🇷🇺 RU</button>
+                                <button onclick="changeLang('vi')" data-lang="vi" class="menu-opt">🇻🇳 VI</button>
+                                <button onclick="changeLang('tr')" data-lang="tr" class="menu-opt">🇹🇷 TR</button>
+                                <button onclick="changeLang('pl')" data-lang="pl" class="menu-opt">🇵🇱 PL</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </header>
 
-        <!-- Предупреждение о приватности (Warning banner) -->
-        <div class="bg-amber-950/40 border border-amber-500/20 text-amber-200 p-4 rounded-2xl mb-8 flex gap-3.5 items-start">
+        <div class="warning-box p-4 mb-8 flex gap-3.5 items-start">
             <span class="text-lg leading-none mt-0.5">⚠️</span>
             <div class="text-xs sm:text-sm leading-relaxed">
                 <strong data-i18n="warning_title" class="text-amber-300 font-bold">All calculations are processed completely offline inside your browser.</strong><br>
-                <span data-i18n="warning_text">Your files, prompts, and conversation data never leave your local workspace.</span>
+                <span data-i18n="warning_text" class="text-amber-200/80">Your files, prompts, and conversation data never leave your local workspace.</span>
             </div>
         </div>
 
-        <!-- Рабочая зона (Symmetrical two-column grid) -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 flex-grow items-stretch">
-            
-            <!-- Левая колонка: Ввод (Input section) -->
             <div class="flex flex-col gap-4 h-full">
-                <!-- Шапка колонки с переключателем форматов ВХОДА -->
                 <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 min-h-[44px]">
                     <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-                        
-                        <!-- Переключатель режима источника -->
-                        <div class="flex bg-zinc-900/60 border border-zinc-800 p-1 rounded-xl w-fit select-none overflow-x-auto max-w-[full]">
-                            <button id="src-ls" onclick="setSourceMode('lightshade')" class="px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all duration-200 bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">
-                                Lightshade
-                            </button>
-                            <button id="src-st" onclick="setSourceMode('sillytavern')" class="px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all duration-200 hover:text-zinc-300 text-zinc-500 border border-transparent">
-                                SillyTavern
-                            </button>
-                            <button id="src-lsai" onclick="setSourceMode('lsai')" class="px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all duration-200 hover:text-zinc-300 text-zinc-500 border border-transparent">
-                                LSAI
-                            </button>
+                        <div class="seg-container src-seg flex w-fit select-none overflow-x-auto">
+                            <button data-mode="lightshade" class="seg-btn active" onclick="setSourceMode('lightshade')">Lightshade</button>
+                            <button data-mode="sillytavern" class="seg-btn" onclick="setSourceMode('sillytavern')">SillyTavern</button>
+                            <button data-mode="lsai" class="seg-btn" onclick="setSourceMode('lsai')">LSAI</button>
                         </div>
                     </div>
-                    
                     <div class="flex items-center gap-2">
-                        <button onclick="loadSample()" data-i18n="sample_btn"
-                                class="text-[11px] sm:text-xs px-3 py-1.5 border border-zinc-800 hover:border-zinc-600 bg-zinc-900/50 hover:bg-zinc-900 text-zinc-300 rounded-xl transition-all duration-200 whitespace-nowrap">
-                            sample
-                        </button>
-                        <button onclick="document.getElementById('fileInput').click()" data-i18n="upload_btn"
-                                class="text-[11px] sm:text-xs px-3 py-1.5 border border-zinc-800 hover:border-emerald-500/50 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-400 rounded-xl transition-all duration-200 whitespace-nowrap">
-                            upload
-                        </button>
+                        <button onclick="loadSample()" data-i18n="sample_btn" class="action-btn text-[11px] sm:text-xs px-3 py-1.5 whitespace-nowrap">sample</button>
+                        <button onclick="document.getElementById('fileInput').click()" data-i18n="upload_btn" class="action-btn-accent text-[11px] sm:text-xs px-3 py-1.5 whitespace-nowrap">upload</button>
                         <input type="file" id="fileInput" accept=".json,.txt,.jsonl" class="hidden">
                     </div>
                 </div>
-
-                <!-- Поле ввода исходного JSON/JSONL -->
-                <div class="terminal-panel fixed-panel-height w-full rounded-3xl overflow-hidden relative flex flex-col">
-                    <textarea id="inputArea" 
-                              class="absolute inset-0 w-full h-full p-5 bg-transparent text-sm leading-relaxed text-zinc-100 outline-none resize-none overflow-auto font-mono"
-                              spellcheck="false"
-                              placeholder="Paste or upload your exported data file here..."></textarea>
+                <div class="panel panel-input fixed-panel-height w-full overflow-hidden relative flex flex-col">
+                    <textarea id="inputArea" class="absolute inset-0 w-full h-full p-5 text-sm leading-relaxed text-zinc-100 resize-none overflow-auto" spellcheck="false" placeholder="Paste or upload your exported data file here..."></textarea>
                 </div>
-
-                <!-- Кнопки управления преобразованием -->
                 <div class="flex gap-3 h-[48px] shrink-0">
-                    <button id="btn-convert" onclick="convertChat()"
-                            class="flex-[2] h-full bg-emerald-500 hover:bg-emerald-400 text-zinc-950 rounded-2xl text-xs sm:text-sm font-bold tracking-wider transition-all duration-200 shadow-lg shadow-emerald-500/10 active:scale-[0.99] flex items-center justify-center text-center leading-tight">
+                    <button id="btn-convert" onclick="convertChat()" class="action-btn-primary flex-[2] h-full rounded-2xl text-xs sm:text-sm font-bold tracking-wider flex items-center justify-center text-center leading-tight">
                         convert to lsai
                     </button>
-                    <button onclick="resetAll()" data-i18n="reset_btn"
-                            class="flex-1 h-full border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-white rounded-2xl text-xs sm:text-sm font-medium transition-all duration-200 text-center flex items-center justify-center">
+                    <button onclick="resetAll()" data-i18n="reset_btn" class="action-btn-danger flex-1 h-full rounded-2xl text-xs sm:text-sm font-medium text-center flex items-center justify-center">
                         reset
                     </button>
                 </div>
             </div>
-
-            <!-- Правая колонка: Вывод (Output section) -->
             <div class="flex flex-col gap-4 h-full">
-                <!-- Шапка колонки с переключателем форматов ВЫВОДА -->
                 <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 min-h-[44px]">
                     <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-                        <!-- Переключатель режима цели -->
-                        <div class="flex bg-zinc-900/60 border border-zinc-800 p-1 rounded-xl w-fit select-none overflow-x-auto max-w-[full]">
-                            <button id="tgt-ls" onclick="setTargetMode('lightshade')" class="px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all duration-200 hover:text-zinc-300 text-zinc-500 border border-transparent">
-                                Lightshade
-                            </button>
-                            <button id="tgt-st" onclick="setTargetMode('sillytavern')" class="px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all duration-200 hover:text-zinc-300 text-zinc-500 border border-transparent">
-                                SillyTavern
-                            </button>
-                            <button id="tgt-lsai" onclick="setTargetMode('lsai')" class="px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all duration-200 bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">
-                                LSAI
-                            </button>
+                        <div class="seg-container tgt-seg flex w-fit select-none overflow-x-auto">
+                            <button data-mode="lightshade" class="seg-btn" onclick="setTargetMode('lightshade')">Lightshade</button>
+                            <button data-mode="sillytavern" class="seg-btn" onclick="setTargetMode('sillytavern')">SillyTavern</button>
+                            <button data-mode="lsai" class="seg-btn active" onclick="setTargetMode('lsai')">LSAI</button>
                         </div>
                     </div>
-                    
                     <div class="flex items-center gap-2">
-                        <button onclick="copyOutput()" id="copyBtn" disabled data-i18n="copy_btn"
-                                class="text-[11px] sm:text-xs px-3 py-1.5 border border-zinc-800 hover:border-zinc-600 bg-zinc-900/50 hover:bg-zinc-900 text-zinc-300 rounded-xl transition-all duration-200 disabled:opacity-30 disabled:pointer-events-none whitespace-nowrap">
-                            copy
-                        </button>
-                        <button onclick="downloadOutput()" id="downloadBtn" disabled data-i18n="download_btn"
-                                class="text-[11px] sm:text-xs px-3 py-1.5 border border-zinc-800 hover:border-emerald-500/50 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-400 rounded-xl transition-all duration-200 disabled:opacity-30 disabled:pointer-events-none whitespace-nowrap">
-                            download
-                        </button>
+                        <button onclick="copyOutput()" id="copyBtn" disabled data-i18n="copy_btn" class="action-btn text-[11px] sm:text-xs px-3 py-1.5 whitespace-nowrap">copy</button>
+                        <button onclick="downloadOutput()" id="downloadBtn" disabled data-i18n="download_btn" class="action-btn-accent text-[11px] sm:text-xs px-3 py-1.5 whitespace-nowrap">download</button>
                     </div>
                 </div>
-                
-                <!-- Поле вывода сконвертированного JSON -->
-                <div class="terminal-panel fixed-panel-height w-full rounded-3xl overflow-hidden relative flex flex-col bg-[#07070b]">
-                    <pre id="outputArea" 
-                         class="absolute inset-0 w-full h-full p-5 text-sm overflow-auto whitespace-pre-wrap break-all leading-relaxed text-emerald-400 font-mono"></pre>
-                    
-                    <!-- Заглушка, пока вывод пуст -->
-                    <div id="outputPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center bg-[#0c0c10]/95 pointer-events-none transition-all duration-300">
-                        <svg class="w-8 h-8 text-zinc-600 mb-2 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 00-2 2z" />
-                        </svg>
+                <div class="panel panel-output fixed-panel-height w-full overflow-hidden relative flex flex-col">
+                    <pre id="outputArea" class="absolute inset-0 w-full h-full p-5 text-sm overflow-auto whitespace-pre-wrap break-all leading-relaxed output-text"></pre>
+                    <div id="outputPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none transition-all duration-300">
+                        <svg class="w-8 h-8 text-zinc-600 mb-2 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 00-2 2z"/></svg>
                         <span data-i18n="placeholder_output" class="text-zinc-500 text-xs font-medium">Awaiting valid data...</span>
                     </div>
                 </div>
-
-                <!-- Индикатор системного состояния / Лог терминала -->
-                <div id="status" class="h-[48px] shrink-0 px-4 rounded-xl border border-zinc-900 bg-zinc-950/80 flex items-center gap-2 text-xs font-medium w-full overflow-hidden">
+                <div id="status" class="status-bar h-[48px] shrink-0 px-4 flex items-center gap-2 text-xs font-medium w-full overflow-hidden">
                     <span class="w-2 h-2 rounded-full inline-block shrink-0 bg-zinc-500 animate-pulse"></span>
                     <span data-i18n="status_ready" class="truncate text-zinc-400">Local terminal ready • Upload file or load demo template</span>
                 </div>
             </div>
         </div>
 
-        <!-- Визуальный предпросмотр чата (Visual Preview Area) -->
-        <div class="mt-8 bg-zinc-900/40 border border-zinc-800/60 rounded-3xl p-6">
+        <div class="mt-8 preview-box p-6">
             <div class="uppercase text-[10px] tracking-wider text-zinc-500 mb-4 font-bold flex items-center gap-2">
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                 <span data-i18n="preview_header">Visual Live Chat Preview (Top 4 messages)</span>
             </div>
-            
             <div id="chatPreview" class="space-y-3 max-h-[260px] overflow-y-auto pr-2">
                 <div data-i18n="preview_fallback" class="text-xs text-zinc-500 italic">No converted conversation loaded. Transform some data to preview dialogue bubbles...</div>
             </div>
         </div>
 
-        <!-- Футер -->
         <footer data-i18n="footer_text" class="text-center text-zinc-600 text-xs mt-12 pb-4">
             developed for flawless chat migrations • local execution env • v2.0
         </footer>
     </div>
 
-    <!-- Логика работы приложения -->
     <script>
-        // Инициализация Canvas
+        let currentTheme = 'matrix';
+        const THEME_KEY = 'app-theme';
+        let menuOpen = false;
+        let currentLang = 'en';
+        let srcMode = 'lightshade';
+        let tgtMode = 'lsai';
+        let currentConvertedIR = null;
+        let currentConvertedString = "";
+
+        // === THEME ===
+        function loadTheme() {
+            const saved = localStorage.getItem(THEME_KEY);
+            if (['matrix','skeuomorphic'].includes(saved)) currentTheme = saved;
+            applyTheme(currentTheme, false);
+        }
+        function setTheme(theme) {
+            currentTheme = theme;
+            localStorage.setItem(THEME_KEY, theme);
+            applyTheme(theme, true);
+            updateMenuThemeOpts();
+            updateUI();
+            if (menuOpen) toggleMenu();
+        }
+        function applyTheme(theme, animate) {
+            document.body.classList.remove('theme-matrix','theme-skeuomorphic');
+            document.body.classList.add('theme-' + theme);
+            const canvas = document.getElementById('matrix');
+            canvas.style.opacity = theme === 'skeuomorphic' ? '0' : '0.08';
+            updateStatusColors(document.getElementById('status').dataset.statusType || 'neutral');
+            if (animate) {
+                const t = document.querySelector('.theme-transition');
+                t.classList.remove('theme-transition');
+                void t.offsetWidth;
+                t.classList.add('theme-transition');
+            }
+        }
+
+        // === MENU ===
+        function toggleMenu() {
+            menuOpen = !menuOpen;
+            const dd = document.getElementById('menuDropdown');
+            const btn = document.getElementById('menuBtn');
+            dd.classList.toggle('open', menuOpen);
+            btn.classList.toggle('menu-open', menuOpen);
+            btn.setAttribute('aria-expanded', String(menuOpen));
+        }
+        document.addEventListener('click', (e) => {
+            if (menuOpen && !e.target.closest('#menuBtn') && !e.target.closest('#menuDropdown')) toggleMenu();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && menuOpen) toggleMenu();
+        });
+        function updateMenuThemeOpts() {
+            document.querySelectorAll('[data-theme-opt]').forEach(el => el.classList.toggle('active', el.dataset.themeOpt === currentTheme));
+        }
+
+        // === MATRIX CANVAS ===
         const canvas = document.getElementById('matrix');
         const ctx = canvas.getContext('2d');
         let drops = [];
         const chars = "0101アイウエオカキクケコサシスセソﾊﾐﾑﾒﾓABCDEFGHIJKLMNOPQRSTUVWXYZ<>;[]{}()*/+-=░▒▓◆◇■□";
-        let columns = 0;
 
+        let columns = 0;
         function resizeCanvas() {
             const dpr = window.devicePixelRatio || 1;
             canvas.width = window.innerWidth * dpr;
@@ -271,575 +337,139 @@
             canvas.style.width = window.innerWidth + 'px';
             canvas.style.height = window.innerHeight + 'px';
             ctx.scale(dpr, dpr);
-
             columns = Math.floor(window.innerWidth / 18);
             drops = Array(columns).fill().map(() => Math.random() * -30);
         }
-        
         let lastTime = 0;
         const fpsInterval = 1000 / 18;
-
         function drawMatrix(timestamp) {
             requestAnimationFrame(drawMatrix);
             const elapsed = timestamp - lastTime;
             if (elapsed < fpsInterval) return;
             lastTime = timestamp - (elapsed % fpsInterval);
-
-            ctx.fillStyle = 'rgba(9, 9, 11, 0.15)';
+            ctx.fillStyle = 'rgba(9,9,11,0.15)';
             ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
-            ctx.fillStyle = '#10b981';
             ctx.font = '14px monospace';
-            
             for (let i = 0; i < drops.length; i++) {
                 const text = chars[Math.floor(Math.random() * chars.length)];
+                ctx.fillStyle = '#10b981';
+                ctx.globalAlpha = 1;
                 ctx.fillText(text, i * 18, drops[i] * 18);
+                ctx.globalAlpha = 1;
                 if (drops[i] * 18 > window.innerHeight && Math.random() > 0.98) drops[i] = 0;
                 drops[i]++;
             }
         }
-        
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
         requestAnimationFrame(drawMatrix);
 
-        // Интегрированная база локализации
+        // === TRANSLATIONS ===
         const translations = {
-            en: {
-                subtitle: "chat-to-chat structure compiler",
-                badge: "Local & Private",
-                warning_title: "All calculations are processed completely offline inside your browser.",
-                warning_text: "Your files, prompts, and conversation data never leave your local workspace.",
-                input_header: "Input Data",
-                sample_btn: "sample",
-                upload_btn: "upload",
-                compile_btn: "convert to {target}",
-                reset_btn: "reset",
-                copy_btn: "copy",
-                download_btn: "download",
-                placeholder_output: "Awaiting valid data...",
-                preview_header: "Visual Live Chat Preview (Top 4 messages)",
-                preview_fallback: "No converted conversation loaded. Transform some data to preview dialogue bubbles...",
-                preview_empty: "Converted list is empty.",
-                footer_text: "developed for flawless chat migrations • local execution env • v2.0",
-                status_ready: "Local terminal ready • Upload file or load demo template",
-                status_success_sample: "Sample chat loaded successfully",
-                status_error_empty: "Paste some data inside input space first",
-                status_error_invalid: "Compilation aborted — Invalid formatting",
-                status_success_convert: "Conversion success: Compiled {count} messages",
-                status_success_download: "Saved exported file as {file}",
-                status_success_copy: "✓ Data copied to clipboard buffer",
-                status_reset: "Workspace refreshed",
-                status_error_txt: "Please upload a .json, .txt, or .jsonl file",
-                placeholder_input_lightshade: "Paste your old Lightshade exported JSON file here...",
-                placeholder_input_sillytavern: "Paste your SillyTavern JSONL file here...",
-                placeholder_input_lsai: "Paste your LSAI formatted JSON file here..."
-            },
-            ru: {
-                subtitle: "мультиконвертер структуры диалогов",
-                badge: "Локально и приватно",
-                warning_title: "Все вычисления происходят полностью локально в вашем браузере.",
-                warning_text: "Ваши файлы, промпты и данные диалогов никогда не покинут локальное рабочее пространство.",
-                input_header: "Входные данные",
-                sample_btn: "пример",
-                upload_btn: "загрузить",
-                compile_btn: "конвертировать в {target}",
-                reset_btn: "сбросить",
-                copy_btn: "копировать",
-                download_btn: "скачать",
-                placeholder_output: "Ожидание корректных данных...",
-                preview_header: "Предпросмотр чата (первые 4 сообщения)",
-                preview_fallback: "Сконвертированный диалог не загружен. Преобразуйте данные, чтобы увидеть пузыри сообщений...",
-                preview_empty: "Список сообщений пуст.",
-                footer_text: "разработано для бесшовного переноса чатов • локальная среда • v2.0",
-                status_ready: "Локальный терминал готов • Загрузите файл или запустите пример",
-                status_success_sample: "Пример диалога успешно загружен",
-                status_error_empty: "Сначала вставьте структуру диалога в поле ввода",
-                status_error_invalid: "Компиляция отменена — некорректный формат",
-                status_success_convert: "Успешная конвертация: скомпилировано {count} сообщений",
-                status_success_download: "Экспортированный файл сохранен как {file}",
-                status_success_copy: "✓ Данные скопированы в буфер обмена",
-                status_reset: "Рабочая область сброшена",
-                status_error_txt: "Пожалуйста, загрузите файл .json, .jsonl или .txt",
-                placeholder_input_lightshade: "Вставьте ваш экспортированный файл JSON из Lightshade...",
-                placeholder_input_sillytavern: "Вставьте ваш файл JSONL из SillyTavern здесь...",
-                placeholder_input_lsai: "Вставьте ваш файл JSON из LSAI здесь..."
-            },
-            vi: {
-                subtitle: "trình biên dịch cấu trúc lịch sử chat",
-                badge: "Nội bộ & Riêng tư",
-                warning_title: "Tất cả tính toán được xử lý hoàn toàn ngoại tuyến trong trình duyệt của bạn.",
-                warning_text: "Tệp tin, câu lệnh và dữ liệu cuộc trò chuyện không bao giờ rời khỏi bộ nhớ cục bộ.",
-                input_header: "Dữ liệu",
-                sample_btn: "mẫu",
-                upload_btn: "tải lên",
-                compile_btn: "chuyển sang {target}",
-                reset_btn: "reset",
-                copy_btn: "sao chép",
-                download_btn: "tải xuống",
-                placeholder_output: "Đang chờ dữ liệu hợp lệ...",
-                preview_header: "Xem trước trực quan cuộc trò chuyện",
-                preview_fallback: "Chưa có dữ liệu nào được chuyển đổi...",
-                preview_empty: "Danh sách trống.",
-                footer_text: "di chuyển mượt mà • môi trường cục bộ • v2.0",
-                status_ready: "Thiết bị cục bộ đã sẵn sàng • Tải tệp lên",
-                status_success_sample: "Tải mẫu thành công",
-                status_error_empty: "Vui lòng dán dữ liệu vào trường nhập trước",
-                status_error_invalid: "Biên dịch bị hủy — Định dạng không hợp lệ",
-                status_success_convert: "Thành công: Đã biên dịch {count} tin nhắn",
-                status_success_download: "Đã lưu tệp dưới dạng {file}",
-                status_success_copy: "✓ Đã sao chép vào bộ nhớ đệm",
-                status_reset: "Đã làm mới",
-                status_error_txt: "Vui lòng tải lên tệp .json, .jsonl",
-                placeholder_input_lightshade: "Dán tệp Lightshade JSON tại đây...",
-                placeholder_input_sillytavern: "Dán tệp SillyTavern JSONL tại đây...",
-                placeholder_input_lsai: "Dán tệp LSAI JSON tại đây..."
-            },
-            tr: {
-                subtitle: "sohbet geçmişi yapısı derleyici",
-                badge: "Yerel & Gizli",
-                warning_title: "Tüm işlemler tarayıcınızda tamamen çevrimdışı olarak gerçekleştirilir.",
-                warning_text: "Dosyalarınız, komutlarınız ve konuşma verileriniz asla dışarı çıkmaz.",
-                input_header: "Giriş Verisi",
-                sample_btn: "örnek",
-                upload_btn: "yükle",
-                compile_btn: "{target}'e dönüştür",
-                reset_btn: "sıfırla",
-                copy_btn: "kopyala",
-                download_btn: "indir",
-                placeholder_output: "Geçerli veri bekleniyor...",
-                preview_header: "Görsel Sohbet Önizlemesi",
-                preview_fallback: "Sohbet yüklenmedi. Dönüştürme işlemini yapın...",
-                preview_empty: "Liste boş.",
-                footer_text: "sorunsuz geçişler için geliştirildi • yerel ortam • v2.0",
-                status_ready: "Yerel terminal hazır",
-                status_success_sample: "Örnek sohbet başarıyla yüklendi",
-                status_error_empty: "Önce giriş alanına veri yapıştırın",
-                status_error_invalid: "Geçersiz biçimlendirme",
-                status_success_convert: "Başarılı: {count} mesaj derlendi",
-                status_success_download: "Veri {file} olarak kaydedildi",
-                status_success_copy: "✓ Kopyalandı",
-                status_reset: "Yenilendi",
-                status_error_txt: "Lütfen .json veya .jsonl dosyası yükleyin",
-                placeholder_input_lightshade: "Lightshade JSON dosyasını buraya yapıştırın...",
-                placeholder_input_sillytavern: "SillyTavern JSONL dosyasını buraya yapıştırın...",
-                placeholder_input_lsai: "LSAI JSON dosyasını buraya yapıştırın..."
-            },
-            pl: {
-                subtitle: "kompilator struktury historii czatu",
-                badge: "Lokalnie & Prywatnie",
-                warning_title: "Wszystkie obliczenia są przetwarzane całkowicie offline w Twojej przeglądarce.",
-                warning_text: "Twoje pliki, prompty i dane konwersacji nigdy nie opuszczają lokalnego komputera.",
-                input_header: "Dane wejściowe",
-                sample_btn: "przykład",
-                upload_btn: "prześlij",
-                compile_btn: "konwertuj do {target}",
-                reset_btn: "reset",
-                copy_btn: "kopiuj",
-                download_btn: "pobierz",
-                placeholder_output: "Oczekiwanie na poprawne dane...",
-                preview_header: "Wizualny podgląd czatu na żywo",
-                preview_fallback: "Brak skonwertowanej konwersacji...",
-                preview_empty: "Lista jest pusta.",
-                footer_text: "stworzone dla bezproblemowej migracji • środowisko lokalne • v2.0",
-                status_ready: "Gotowy • Prześlij plik",
-                status_success_sample: "Pomyślnie załadowano przykład",
-                status_error_empty: "Najpierw wklej dane",
-                status_error_invalid: "Nieprawidłowy format",
-                status_success_convert: "Sukces: Skompilowano {count} wiadomości",
-                status_success_download: "Zapisano jako {file}",
-                status_success_copy: "✓ Skopiowano do schowka",
-                status_reset: "Zresetowano",
-                status_error_txt: "Prześlij plik .json lub .jsonl",
-                placeholder_input_lightshade: "Wklej plik Lightshade JSON...",
-                placeholder_input_sillytavern: "Wklej plik SillyTavern JSONL...",
-                placeholder_input_lsai: "Wklej plik LSAI JSON..."
-            }
+            en: { subtitle:"chat-to-chat structure compiler",badge:"Local & Private",warning_title:"All calculations are processed completely offline inside your browser.",warning_text:"Your files, prompts, and conversation data never leave your local workspace.",sample_btn:"sample",upload_btn:"upload",compile_btn:"convert to {target}",reset_btn:"reset",copy_btn:"copy",download_btn:"download",placeholder_output:"Awaiting valid data...",preview_header:"Visual Live Chat Preview (Top 4 messages)",preview_fallback:"No converted conversation loaded. Transform some data to preview dialogue bubbles...",preview_empty:"Converted list is empty.",footer_text:"developed for flawless chat migrations • local execution env • v2.0",status_ready:"Local terminal ready • Upload file or load demo template",status_success_sample:"Sample chat loaded successfully",status_error_empty:"Paste some data inside input space first",status_error_invalid:"Compilation aborted — Invalid formatting",status_success_convert:"Conversion success: Compiled {count} messages",status_success_download:"Saved exported file as {file}",status_success_copy:"✓ Data copied to clipboard buffer",status_reset:"Workspace refreshed",status_error_txt:"Please upload a .json, .txt, or .jsonl file",placeholder_input_lightshade:"Paste your old Lightshade exported JSON file here...",placeholder_input_sillytavern:"Paste your SillyTavern JSONL file here...",placeholder_input_lsai:"Paste your LSAI formatted JSON file here..." },
+            ru: { subtitle:"мультиконвертер структуры диалогов",badge:"Локально и приватно",warning_title:"Все вычисления происходят полностью локально в вашем браузере.",warning_text:"Ваши файлы, промпты и данные диалогов никогда не покинут локальное рабочее пространство.",sample_btn:"пример",upload_btn:"загрузить",compile_btn:"конвертировать в {target}",reset_btn:"сбросить",copy_btn:"копировать",download_btn:"скачать",placeholder_output:"Ожидание корректных данных...",preview_header:"Предпросмотр чата (первые 4 сообщения)",preview_fallback:"Сконвертированный диалог не загружен. Преобразуйте данные, чтобы увидеть пузыри сообщений...",preview_empty:"Список сообщений пуст.",footer_text:"разработано для бесшовного переноса чатов • локальная среда • v2.0",status_ready:"Локальный терминал готов • Загрузите файл или запустите пример",status_success_sample:"Пример диалога успешно загружен",status_error_empty:"Сначала вставьте структуру диалога в поле ввода",status_error_invalid:"Компиляция отменена — некорректный формат",status_success_convert:"Успешная конвертация: скомпилировано {count} сообщений",status_success_download:"Экспортированный файл сохранен как {file}",status_success_copy:"✓ Данные скопированы в буфер обмена",status_reset:"Рабочая область сброшена",status_error_txt:"Пожалуйста, загрузите файл .json, .jsonl или .txt",placeholder_input_lightshade:"Вставьте ваш экспортированный файл JSON из Lightshade...",placeholder_input_sillytavern:"Вставьте ваш файл JSONL из SillyTavern здесь...",placeholder_input_lsai:"Вставьте ваш файл JSON из LSAI здесь..." },
+            vi: { subtitle:"trình biên dịch cấu trúc lịch sử chat",badge:"Nội bộ & Riêng tư",warning_title:"Tất cả tính toán được xử lý hoàn toàn ngoại tuyến trong trình duyệt của bạn.",warning_text:"Tệp tin, câu lệnh và dữ liệu cuộc trò chuyện không bao giờ rời khỏi bộ nhớ cục bộ.",sample_btn:"mẫu",upload_btn:"tải lên",compile_btn:"chuyển sang {target}",reset_btn:"reset",copy_btn:"sao chép",download_btn:"tải xuống",placeholder_output:"Đang chờ dữ liệu hợp lệ...",preview_header:"Xem trước trực quan cuộc trò chuyện",preview_fallback:"Chưa có dữ liệu nào được chuyển đổi...",preview_empty:"Danh sách trống.",footer_text:"di chuyển mượt mà • môi trường cục bộ • v2.0",status_ready:"Thiết bị cục bộ đã sẵn sàng • Tải tệp lên",status_success_sample:"Tải mẫu thành công",status_error_empty:"Vui lòng dán dữ liệu vào trường nhập trước",status_error_invalid:"Biên dịch bị hủy — Định dạng không hợp lệ",status_success_convert:"Thành công: Đã biên dịch {count} tin nhắn",status_success_download:"Đã lưu tệp dưới dạng {file}",status_success_copy:"✓ Đã sao chép vào bộ nhớ đệm",status_reset:"Đã làm mới",status_error_txt:"Vui lòng tải lên tệp .json, .jsonl",placeholder_input_lightshade:"Dán tệp Lightshade JSON tại đây...",placeholder_input_sillytavern:"Dán tệp SillyTavern JSONL tại đây...",placeholder_input_lsai:"Dán tệp LSAI JSON tại đây..." },
+            tr: { subtitle:"sohbet geçmişi yapısı derleyici",badge:"Yerel & Gizli",warning_title:"Tüm işlemler tarayıcınızda tamamen çevrimdışı olarak gerçekleştirilir.",warning_text:"Dosyalarınız, komutlarınız ve konuşma verileriniz asla dışarı çıkmaz.",sample_btn:"örnek",upload_btn:"yükle",compile_btn:"{target}'e dönüştür",reset_btn:"sıfırla",copy_btn:"kopyala",download_btn:"indir",placeholder_output:"Geçerli veri bekleniyor...",preview_header:"Görsel Sohbet Önizlemesi",preview_fallback:"Sohbet yüklenmedi. Dönüştürme işlemini yapın...",preview_empty:"Liste boş.",footer_text:"sorunsuz geçişler için geliştirildi • yerel ortam • v2.0",status_ready:"Yerel terminal hazır",status_success_sample:"Örnek sohbet başarıyla yüklendi",status_error_empty:"Önce giriş alanına veri yapıştırın",status_error_invalid:"Geçersiz biçimlendirme",status_success_convert:"Başarılı: {count} mesaj derlendi",status_success_download:"Veri {file} olarak kaydedildi",status_success_copy:"✓ Kopyalandı",status_reset:"Yenilendi",status_error_txt:"Lütfen .json veya .jsonl dosyası yükleyin",placeholder_input_lightshade:"Lightshade JSON dosyasını buraya yapıştırın...",placeholder_input_sillytavern:"SillyTavern JSONL dosyasını buraya yapıştırın...",placeholder_input_lsai:"LSAI JSON dosyasını buraya yapıştırın..." },
+            pl: { subtitle:"kompilator struktury historii czatu",badge:"Lokalnie & Prywatnie",warning_title:"Wszystkie obliczenia są przetwarzane całkowicie offline w Twojej przeglądarce.",warning_text:"Twoje pliki, prompty i dane konwersacji nigdy nie opuszczają lokalnego komputera.",sample_btn:"przykład",upload_btn:"prześlij",compile_btn:"konwertuj do {target}",reset_btn:"reset",copy_btn:"kopiuj",download_btn:"pobierz",placeholder_output:"Oczekiwanie na poprawne dane...",preview_header:"Wizualny podgląd czatu na żywo",preview_fallback:"Brak skonwertowanej konwersacji...",preview_empty:"Lista jest pusta.",footer_text:"stworzone dla bezproblemowej migracji • środowisko lokalne • v2.0",status_ready:"Gotowy • Prześlij plik",status_success_sample:"Pomyślnie załadowano przykład",status_error_empty:"Najpierw wklej dane",status_error_invalid:"Nieprawidłowy format",status_success_convert:"Sukces: Skompilowano {count} wiadomości",status_success_download:"Zapisano jako {file}",status_success_copy:"✓ Skopiowano do schowka",status_reset:"Zresetowano",status_error_txt:"Prześlij plik .json lub .jsonl",placeholder_input_lightshade:"Wklej plik Lightshade JSON...",placeholder_input_sillytavern:"Wklej plik SillyTavern JSONL...",placeholder_input_lsai:"Wklej plik LSAI JSON..." }
         };
 
-        // Внутреннее представление (IR) математического демо-чата
         const sampleMathIR = [
-            { sender: "user", texts: ["Hello! Can you help me find the derivative of the function f(x) = x^3 + 2x^2 - 5x + 7 and then integrate the result back to verify it?"], timestamp: "2026-06-16T12:01:23Z" },
-            { sender: "character", texts: ["Of course! Let's solve this step by step.\n\nFirst, we'll find the derivative f'(x) using the power rule:\n\nf'(x) = d/dx(x^3) + d/dx(2x^2) - d/dx(5x) + d/dx(7)\nf'(x) = 3x^2 + 4x - 5\n\nNow, let's integrate f'(x) back:\n\n∫(3x^2 + 4x - 5) dx = x^3 + 2x^2 - 5x + C\n\nSince C is the constant of integration, it matches the original constant '7' from your function. It works perfectly!"], timestamp: "2026-06-16T12:02:45Z" },
-            { sender: "user", texts: ["That makes total sense! Thank you so much for the clear and quick explanation."], timestamp: "2026-06-16T12:04:10Z" }
+            { sender:"user", texts:["Hello! Can you help me find the derivative of the function f(x) = x^3 + 2x^2 - 5x + 7 and then integrate the result back to verify it?"], timestamp:"2026-06-16T12:01:23Z" },
+            { sender:"character", texts:["Of course! Let's solve this step by step.\n\nFirst, we'll find the derivative f'(x) using the power rule:\n\nf'(x) = d/dx(x^3) + d/dx(2x^2) - d/dx(5x) + d/dx(7)\nf'(x) = 3x^2 + 4x - 5\n\nNow, let's integrate f'(x) back:\n\n∫(3x^2 + 4x - 5) dx = x^3 + 2x^2 - 5x + C\n\nSince C is the constant of integration, it matches the original constant '7' from your function. It works perfectly!"], timestamp:"2026-06-16T12:02:45Z" },
+            { sender:"user", texts:["That makes total sense! Thank you so much for the clear and quick explanation."], timestamp:"2026-06-16T12:04:10Z" }
         ];
 
-        // Глобальные состояния
-        let currentLang = 'en';
-        let srcMode = 'lightshade'; 
-        let tgtMode = 'lsai'; 
-        let currentConvertedIR = null; // Internal Representation
-        let currentConvertedString = "";
-        
-        function getModeTitle(m) {
-            if (m === 'lightshade') return 'lightshade';
-            if (m === 'sillytavern') return 'silly tavern';
-            return 'lsai';
-        }
+        function getModeTitle(m) { return m === 'lightshade' ? 'lightshade' : m === 'sillytavern' ? 'silly tavern' : 'lsai'; }
+        function getI18nStr(key, args = {}) { let str = translations[currentLang][key] || translations['en'][key] || ''; for (const [k,v] of Object.entries(args)) str = str.replace(`{${k}}`, v); return str; }
 
+        // === UI ===
         function updateUI() {
-            // Кнопки источника
-            ['lightshade', 'sillytavern', 'lsai'].forEach(m => {
-                const btn = document.getElementById(`src-${m === 'lightshade' ? 'ls' : m === 'sillytavern' ? 'st' : 'lsai'}`);
-                if (m === srcMode) {
-                    btn.className = "px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all duration-200 bg-emerald-500/20 text-emerald-400 border border-emerald-500/20";
-                } else {
-                    btn.className = "px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all duration-200 hover:text-zinc-300 text-zinc-500 border border-transparent";
-                }
-            });
-
-            // Кнопки цели
-            ['lightshade', 'sillytavern', 'lsai'].forEach(m => {
-                const btn = document.getElementById(`tgt-${m === 'lightshade' ? 'ls' : m === 'sillytavern' ? 'st' : 'lsai'}`);
-                if (m === tgtMode) {
-                    btn.className = "px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all duration-200 bg-emerald-500/20 text-emerald-400 border border-emerald-500/20";
-                } else {
-                    btn.className = "px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all duration-200 hover:text-zinc-300 text-zinc-500 border border-transparent";
-                }
-            });
-
-            // Название
-            document.getElementById('main-title').innerHTML = `${getModeTitle(srcMode)} <span class="text-emerald-400 mx-1">→</span> ${getModeTitle(tgtMode)}`;
-            
-            // Текст кнопки конвертации
-            const convertBtn = document.getElementById('btn-convert');
-            convertBtn.textContent = getI18nStr('compile_btn', {target: getModeTitle(tgtMode)});
-
-            // Плейсхолдер
-            const inputArea = document.getElementById('inputArea');
-            inputArea.setAttribute('placeholder', getI18nStr(`placeholder_input_${srcMode}`));
+            document.querySelectorAll('.src-seg .seg-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.mode === srcMode));
+            document.querySelectorAll('.tgt-seg .seg-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.mode === tgtMode));
+            document.getElementById('main-title').innerHTML = `${getModeTitle(srcMode)} <span class="title-arrow mx-1">→</span> ${getModeTitle(tgtMode)}`;
+            document.getElementById('btn-convert').textContent = getI18nStr('compile_btn', {target: getModeTitle(tgtMode)});
+            document.getElementById('inputArea').setAttribute('placeholder', getI18nStr(`placeholder_input_${srcMode}`));
         }
-
-        function setSourceMode(mode) {
-            if (mode === tgtMode) {
-                // Умный Fallback
-                tgtMode = mode === 'lightshade' ? 'lsai' : 'lightshade';
-            }
-            srcMode = mode;
-            if (document.getElementById('inputArea').value.trim() !== '') resetAll();
-            updateUI();
-        }
-
-        function setTargetMode(mode) {
-            if (mode === srcMode) {
-                // Умный Fallback
-                srcMode = mode === 'lightshade' ? 'lsai' : 'lightshade';
-            }
-            tgtMode = mode;
-            if (document.getElementById('inputArea').value.trim() !== '') resetAll();
-            updateUI();
-        }
-
         function changeLang(lang) {
             currentLang = lang;
-            ['en', 'ru', 'vi', 'tr', 'pl'].forEach(l => {
-                const btn = document.getElementById(`lang-${l}`);
-                if (l === lang) btn.className = "px-2.5 py-1.5 rounded-xl text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1 font-bold transition-all duration-150";
-                else btn.className = "px-2.5 py-1.5 rounded-xl text-xs hover:bg-zinc-800/80 text-zinc-400 border border-transparent flex items-center gap-1 font-bold transition-all duration-150";
-            });
-
-            document.querySelectorAll('[data-i18n]').forEach(el => {
-                const key = el.getAttribute('data-i18n');
-                if (translations[lang] && translations[lang][key]) el.textContent = translations[lang][key];
-            });
-
-            updateUI(); // Обновит плейсхолдеры и кнопки
-
-            if (currentConvertedIR) {
-                renderLiveChatPreview(currentConvertedIR);
-                showStatus(getI18nStr('status_success_convert', { count: currentConvertedIR.length }), 'success');
-            } else {
-                showStatus(getI18nStr('status_ready'));
-                const previewFallback = document.querySelector('[data-i18n="preview_fallback"]');
-                if (previewFallback) previewFallback.textContent = translations[lang]['preview_fallback'];
-            }
+            document.querySelectorAll('[data-lang]').forEach(el => el.classList.toggle('active', el.dataset.lang === lang));
+            document.querySelectorAll('[data-i18n]').forEach(el => { const k = el.getAttribute('data-i18n'); if (translations[lang] && translations[lang][k]) el.textContent = translations[lang][k]; });
+            updateUI();
+            if (currentConvertedIR) { renderLiveChatPreview(currentConvertedIR); showStatus(getI18nStr('status_success_convert', {count: currentConvertedIR.length}), 'success'); }
+            else { showStatus(getI18nStr('status_ready')); const pf = document.querySelector('[data-i18n="preview_fallback"]'); if (pf) pf.textContent = translations[lang]['preview_fallback']; }
         }
+        function setSourceMode(mode) { if (mode === tgtMode) tgtMode = mode === 'lightshade' ? 'lsai' : 'lightshade'; srcMode = mode; if (document.getElementById('inputArea').value.trim()) resetAll(); updateUI(); }
+        function setTargetMode(mode) { if (mode === srcMode) srcMode = mode === 'lightshade' ? 'lsai' : 'lightshade'; tgtMode = mode; if (document.getElementById('inputArea').value.trim()) resetAll(); updateUI(); }
 
-        function getI18nStr(key, args = {}) {
-            let str = translations[currentLang][key] || translations['en'][key] || '';
-            for (const [k, v] of Object.entries(args)) str = str.replace(`{${k}}`, v);
-            return str;
+        // === STATUS ===
+        function updateStatusColors(type) {
+            const s = document.getElementById('status'), dot = s.querySelector('span:first-child');
+            const isSk = currentTheme === 'skeuomorphic';
+            if (type === 'success') { if(dot) dot.className='w-2 h-2 rounded-full inline-block shrink-0 bg-emerald-400'; s.style.color = isSk?'#34c759':'#34d399'; }
+            else if (type === 'error') { if(dot) dot.className='w-2 h-2 rounded-full inline-block shrink-0 bg-rose-400'; s.style.color = isSk?'#ff3b30':'#f87171'; }
+            else { if(dot) dot.className='w-2 h-2 rounded-full inline-block shrink-0 bg-zinc-500 animate-pulse'; s.style.color='#a1a1aa'; }
         }
-
         function showStatus(msg, type = 'neutral') {
-            const status = document.getElementById('status');
-            status.innerHTML = '';
-            const dot = document.createElement('span');
-            dot.className = "w-2 h-2 rounded-full inline-block shrink-0";
-            const textSpan = document.createElement('span');
-            textSpan.className = "truncate"; 
-            textSpan.textContent = msg;
-
-            if (type === 'success') {
-                dot.className += " bg-emerald-400";
-                status.style.color = '#34d399';
-                status.style.borderColor = 'rgba(16, 185, 129, 0.2)';
-                status.style.backgroundColor = 'rgba(16, 185, 129, 0.05)';
-            } else if (type === 'error') {
-                dot.className += " bg-rose-400";
-                status.style.color = '#f87171';
-                status.style.borderColor = 'rgba(244, 63, 94, 0.2)';
-                status.style.backgroundColor = 'rgba(244, 63, 94, 0.05)';
-            } else {
-                dot.className += " bg-zinc-500 animate-pulse";
-                status.style.color = '#a1a1aa';
-                status.style.borderColor = '#27272a';
-                status.style.backgroundColor = '#0c0c10';
-            }
-
-            status.appendChild(dot);
-            status.appendChild(textSpan);
-            status.classList.add('fade-in');
-            setTimeout(() => status.classList.remove('fade-in'), 400);
+            const s = document.getElementById('status'); s.dataset.statusType = type; s.innerHTML = '';
+            s.appendChild(document.createElement('span'));
+            const t = document.createElement('span'); t.className='truncate'; t.textContent=msg; s.appendChild(t);
+            updateStatusColors(type);
+            const a = currentTheme==='skeuomorphic'?'ios6-spring':'fade-in';
+            s.classList.add(a); setTimeout(()=>s.classList.remove(a), 600);
         }
 
-        // === ПАРСЕРЫ ===
-        function normalizeContent(value) {
-            if (Array.isArray(value)) return value.map(v => typeof v === 'string' ? v : JSON.stringify(v));
-            if (typeof value === 'string') return [value];
-            if (value === null || value === undefined) return [""];
-            return [typeof value === 'object' ? JSON.stringify(value) : String(value)];
-        }
+        // === PARSERS ===
+        function normalizeContent(v) { if(Array.isArray(v)) return v.map(x=>typeof x==='string'?x:JSON.stringify(x)); if(typeof v==='string') return [v]; if(v===null||v===undefined) return [""]; return [typeof v==='object'?JSON.stringify(v):String(v)]; }
+        function parseLightshade(t) { const i=JSON.parse(t); let m=[]; if(Array.isArray(i)) m=i; else if(i&&i.messages&&Array.isArray(i.messages)) m=i.messages; else throw new Error("Could not find messages array"); return m.map(msg=>({sender:(msg.role==="assistant"||msg.sender==="assistant")?"character":(msg.sender||msg.role||"user"),texts:normalizeContent(msg.content??msg.texts??""),timestamp:msg.timestamp||msg.created_at||new Date().toISOString(),...(msg.name?{name:msg.name}:{})})); }
+        function parseSillyTavern(t) { const lines=t.split('\n').map(l=>l.trim()).filter(l=>l); const msgs=[]; for(const l of lines){const p=JSON.parse(l); if(p.mes===undefined)continue; msgs.push({sender:p.is_user?"user":"character",texts:normalizeContent(p.mes),timestamp:p.send_date?new Date(Number(p.send_date)).toISOString():new Date().toISOString(),...(p.name?{name:p.name}:{})});} if(!msgs.length) throw new Error("No readable messages found"); return msgs; }
+        function parseLSAI(t) { const i=JSON.parse(t); if(!Array.isArray(i)) throw new Error("LSAI format must be a JSON array"); return i.map(msg=>({sender:msg.sender||(msg.role==='assistant'?'character':msg.role)||"user",texts:normalizeContent(msg.texts??msg.content??""),timestamp:msg.timestamp||new Date().toISOString(),...(msg.name?{name:msg.name}:{})})); }
 
-        function parseLightshade(text) {
-            const input = JSON.parse(text);
-            let messages = [];
-            if (Array.isArray(input)) messages = input;
-            else if (input && input.messages && Array.isArray(input.messages)) messages = input.messages;
-            else throw new Error("Could not find messages array");
-            
-            return messages.map((msg) => {
-                const sender = (msg.role === "assistant" || msg.sender === "assistant") ? "character" : (msg.sender || msg.role || "user");
-                const res = {
-                    sender,
-                    texts: normalizeContent(msg.content ?? msg.texts ?? ""),
-                    timestamp: msg.timestamp || msg.created_at || new Date().toISOString()
-                };
-                if (msg.name) res.name = msg.name;
-                return res;
-            });
-        }
+        // === FORMATTERS ===
+        function formatToLightshade(ir) { return JSON.stringify({character:"Assistant",created_at:new Date().toISOString(),messages:ir.map(m=>({role:m.sender==="character"?"assistant":m.sender,content:m.texts.join('\n'),timestamp:m.timestamp}))},null,2); }
+        function formatToSillyTavern(ir) { let o=`{"user_name":"You","character_name":"Assistant","create_date":${Date.now()}}\n`; ir.forEach(m=>{const u=m.sender==="user"||m.sender==="You"; o+=JSON.stringify({name:m.name||(u?"You":"Assistant"),is_user:u,is_name:true,send_date:m.timestamp?new Date(m.timestamp).getTime():Date.now(),mes:m.texts.join('\n')})+"\n";}); return o.trim(); }
+        function formatToLSAI(ir) { return JSON.stringify(ir,null,2); }
 
-        function parseSillyTavern(text) {
-            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-            const messages = [];
-            for (const line of lines) {
-                const parsed = JSON.parse(line);
-                if (parsed.mes === undefined) continue;
-                
-                const res = {
-                    sender: parsed.is_user ? "user" : "character",
-                    texts: normalizeContent(parsed.mes),
-                    timestamp: parsed.send_date ? new Date(Number(parsed.send_date)).toISOString() : new Date().toISOString()
-                };
-                if (parsed.name) res.name = parsed.name;
-                messages.push(res);
-            }
-            if (!messages.length) throw new Error("No readable messages found");
-            return messages;
-        }
-
-        function parseLSAI(text) {
-            const input = JSON.parse(text);
-            if (!Array.isArray(input)) throw new Error("LSAI format must be a JSON array");
-            return input.map((msg) => {
-                const res = {
-                    sender: msg.sender || (msg.role === 'assistant' ? 'character' : msg.role) || "user",
-                    texts: normalizeContent(msg.texts ?? msg.content ?? ""),
-                    timestamp: msg.timestamp || new Date().toISOString()
-                };
-                if (msg.name) res.name = msg.name;
-                return res;
-            });
-        }
-
-        // === ФОРМАТТЕРЫ ===
-        function formatToLightshade(ir) {
-            return JSON.stringify({
-                character: "Assistant",
-                created_at: new Date().toISOString(),
-                messages: ir.map(msg => ({
-                    role: msg.sender === "character" ? "assistant" : msg.sender,
-                    content: msg.texts.join('\n'),
-                    timestamp: msg.timestamp
-                }))
-            }, null, 2);
-        }
-
-        function formatToSillyTavern(ir) {
-            let out = `{"user_name":"You","character_name":"Assistant","create_date":${Date.now()}}\n`;
-            ir.forEach(msg => {
-                const isUser = msg.sender === "user" || msg.sender === "You";
-                out += JSON.stringify({
-                    name: msg.name || (isUser ? "You" : "Assistant"),
-                    is_user: isUser,
-                    is_name: true,
-                    send_date: msg.timestamp ? new Date(msg.timestamp).getTime() : Date.now(),
-                    mes: msg.texts.join('\n')
-                }) + "\n";
-            });
-            return out.trim();
-        }
-
-        function formatToLSAI(ir) {
-            return JSON.stringify(ir, null, 2);
-        }
-
-        // === ОСНОВНАЯ ЛОГИКА ===
-        function loadSample() {
-            if (srcMode === 'lightshade') {
-                document.getElementById('inputArea').value = formatToLightshade(sampleMathIR);
-            } else if (srcMode === 'sillytavern') {
-                document.getElementById('inputArea').value = formatToSillyTavern(sampleMathIR);
-            } else {
-                document.getElementById('inputArea').value = formatToLSAI(sampleMathIR);
-            }
-            convertChat();
-            showStatus(getI18nStr('status_success_sample'), "success");
-        }
-        
+        // === CORE ===
+        function loadSample() { const el=document.getElementById('inputArea'); if(srcMode==='lightshade') el.value=formatToLightshade(sampleMathIR); else if(srcMode==='sillytavern') el.value=formatToSillyTavern(sampleMathIR); else el.value=formatToLSAI(sampleMathIR); convertChat(); showStatus(getI18nStr('status_success_sample'),"success"); }
         function convertChat() {
-            const inputText = document.getElementById('inputArea').value.trim();
-            const outputArea = document.getElementById('outputArea');
-            const placeholder = document.getElementById('outputPlaceholder');
-            
-            if (!inputText) {
-                showStatus(getI18nStr('status_error_empty'), "error");
-                return;
-            }
-            
-            try {
-                // Parse Step (Source -> IR)
-                let ir;
-                if (srcMode === 'lightshade') ir = parseLightshade(inputText);
-                else if (srcMode === 'sillytavern') ir = parseSillyTavern(inputText);
-                else ir = parseLSAI(inputText);
-
-                currentConvertedIR = ir;
-
-                // Format Step (IR -> Target)
-                if (tgtMode === 'lightshade') currentConvertedString = formatToLightshade(ir);
-                else if (tgtMode === 'sillytavern') currentConvertedString = formatToSillyTavern(ir);
-                else currentConvertedString = formatToLSAI(ir);
-                
-                outputArea.textContent = currentConvertedString;
-                placeholder.classList.add('hidden');
-                outputArea.classList.add('fade-in');
-                setTimeout(() => outputArea.classList.remove('fade-in'), 400);
-                
-                document.getElementById('downloadBtn').disabled = false;
-                document.getElementById('copyBtn').disabled = false;
-                
-                renderLiveChatPreview(ir);
-                showStatus(getI18nStr('status_success_convert', { count: ir.length }), "success");
-            } catch (e) {
-                showStatus(getI18nStr('status_error_invalid') + " " + e.message, "error");
-            }
+            const txt=document.getElementById('inputArea').value.trim(); if(!txt){showStatus(getI18nStr('status_error_empty'),"error");return;}
+            try { let ir; if(srcMode==='lightshade') ir=parseLightshade(txt); else if(srcMode==='sillytavern') ir=parseSillyTavern(txt); else ir=parseLSAI(txt);
+            currentConvertedIR=ir; if(tgtMode==='lightshade') currentConvertedString=formatToLightshade(ir); else if(tgtMode==='sillytavern') currentConvertedString=formatToSillyTavern(ir); else currentConvertedString=formatToLSAI(ir);
+            document.getElementById('outputArea').textContent=currentConvertedString; document.getElementById('outputPlaceholder').classList.add('hidden');
+            const o=document.getElementById('outputArea'); o.classList.add('fade-in'); setTimeout(()=>o.classList.remove('fade-in'),400);
+            document.getElementById('downloadBtn').disabled=false; document.getElementById('copyBtn').disabled=false;
+            renderLiveChatPreview(ir); showStatus(getI18nStr('status_success_convert',{count:ir.length}),"success");
+            } catch(e) { showStatus(getI18nStr('status_error_invalid')+" "+e.message,"error"); }
         }
-
-        function renderLiveChatPreview(irMessages) {
-            const container = document.getElementById('chatPreview');
-            container.innerHTML = '';
-            const sliceCount = irMessages.slice(0, 4);
-            if (!sliceCount.length) {
-                container.innerHTML = `<div class="text-xs text-zinc-500 italic">${getI18nStr('preview_empty')}</div>`;
-                return;
-            }
-
-            sliceCount.forEach(msg => {
-                const bubble = document.createElement('div');
-                bubble.className = "flex flex-col max-w-[85%] rounded-3xl p-4 gap-1.5 transition-all duration-200 border fade-in";
-                
-                if (msg.sender === 'character' || msg.sender === 'assistant') {
-                    bubble.className += " bg-emerald-950/20 border-emerald-500/20 text-zinc-200 self-start";
-                } else {
-                    bubble.className += " bg-zinc-900/60 border-zinc-800 text-zinc-300 self-end ml-auto";
-                }
-
-                const roleColor = (msg.sender === 'character' || msg.sender === 'assistant') ? 'text-emerald-400' : 'text-zinc-400';
-                const timeStr = msg.timestamp ? `<span class="text-[9px] text-zinc-500 font-normal select-none">${msg.timestamp.split('T')[0] || ''}</span>` : '';
-                const nameStr = msg.name ? `<span class="text-[9px] font-bold text-zinc-300 ml-1">(${msg.name})</span>` : '';
-
-                bubble.innerHTML = `
-                    <div class="flex items-center gap-2 select-none">
-                        <span class="text-[10px] font-bold uppercase tracking-wider ${roleColor}">${msg.sender} ${nameStr}</span>
-                        ${timeStr}
-                    </div>
-                    <p class="text-xs leading-relaxed whitespace-pre-wrap">${msg.texts[0] || ''}</p>
-                `;
-                container.appendChild(bubble);
-            });
+        function renderLiveChatPreview(ir) {
+            const c=document.getElementById('chatPreview'); c.innerHTML=''; const sl=ir.slice(0,4);
+            if(!sl.length){c.innerHTML=`<div class="text-xs text-zinc-500 italic">${getI18nStr('preview_empty')}</div>`;return;}
+            const isSk=currentTheme==='skeuomorphic';
+            const anim=isSk?'ios6-slide-up':'fade-in';
+            sl.forEach((msg,idx)=>{ const b=document.createElement('div'); b.className=`flex flex-col max-w-[85%] p-4 gap-1.5 transition-all duration-200 border ${anim} rounded-3xl`; b.style.animationDelay=`${idx*0.08}s`;
+            if(msg.sender==='character'||msg.sender==='assistant'){b.classList.add('bg-emerald-950/20','border-emerald-500/20','text-zinc-200','self-start');} else {b.classList.add('bg-zinc-900/60','border-zinc-800','text-zinc-300','self-end','ml-auto');}
+            const rc=(msg.sender==='character'||msg.sender==='assistant')?(isSk?'text-green-400':'text-emerald-400'):'text-zinc-400';
+            const ts=msg.timestamp?`<span class="text-[9px] text-zinc-500 font-normal select-none">${msg.timestamp.split('T')[0]||''}</span>`:'';
+            const ns=msg.name?`<span class="text-[9px] font-bold text-zinc-300 ml-1">(${msg.name})</span>`:'';
+            b.innerHTML=`<div class="flex items-center gap-2 select-none"><span class="text-[10px] font-bold uppercase tracking-wider ${rc}">${msg.sender} ${ns}</span>${ts}</div><p class="text-xs leading-relaxed whitespace-pre-wrap">${msg.texts[0]||''}</p>`;
+            c.appendChild(b);});
         }
-        
-        function downloadOutput() {
-            if (!currentConvertedString) return;
-            const ext = tgtMode === 'sillytavern' ? 'jsonl' : 'json';
-            const filename = `chat-export-${tgtMode}.${ext}`;
-            const blob = new Blob([currentConvertedString], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.click();
-            URL.revokeObjectURL(url);
-            showStatus(getI18nStr('status_success_download', { file: filename }), "success");
-        }
-        
-        function copyOutput() {
-            if (!currentConvertedString) return;
-            const copyBtn = document.getElementById('copyBtn');
-            navigator.clipboard.writeText(currentConvertedString).then(() => {
-                const originalText = copyBtn.textContent;
-                copyBtn.textContent = "✓ copied";
-                copyBtn.style.color = '#34d399';
-                copyBtn.style.borderColor = 'rgba(16, 185, 129, 0.4)';
-                
-                showStatus(getI18nStr('status_success_copy'), "success");
-                setTimeout(() => {
-                    copyBtn.textContent = originalText;
-                    copyBtn.style.color = '';
-                    copyBtn.style.borderColor = '';
-                }, 1800);
-            });
-        }
-        
-        function resetAll() {
-            document.getElementById('inputArea').value = '';
-            document.getElementById('outputArea').textContent = '';
-            document.getElementById('outputPlaceholder').classList.remove('hidden');
-            currentConvertedIR = null;
-            currentConvertedString = "";
-            
-            document.getElementById('downloadBtn').disabled = true;
-            document.getElementById('copyBtn').disabled = true;
-            
-            document.getElementById('chatPreview').innerHTML = `<div class="text-xs text-zinc-500 italic">${getI18nStr('preview_fallback')}</div>`;
-            showStatus(getI18nStr('status_reset'));
-        }
-        
+        function downloadOutput() { if(!currentConvertedString)return; const ext=tgtMode==='sillytavern'?'jsonl':'json'; const f=`chat-export-${tgtMode}.${ext}`; const b=new Blob([currentConvertedString],{type:'application/json'}); const u=URL.createObjectURL(b); const a=document.createElement('a'); a.href=u;a.download=f;a.click();URL.revokeObjectURL(u); showStatus(getI18nStr('status_success_download',{file:f}),"success"); }
+        function copyOutput() { if(!currentConvertedString)return; navigator.clipboard.writeText(currentConvertedString).then(()=>showStatus(getI18nStr('status_success_copy'),"success")); }
+        function resetAll() { document.getElementById('inputArea').value=''; document.getElementById('outputArea').textContent=''; document.getElementById('outputPlaceholder').classList.remove('hidden'); currentConvertedIR=null; currentConvertedString=""; document.getElementById('downloadBtn').disabled=true; document.getElementById('copyBtn').disabled=true; document.getElementById('chatPreview').innerHTML=`<div data-i18n="preview_fallback" class="text-xs text-zinc-500 italic">${getI18nStr('preview_fallback')}</div>`; showStatus(getI18nStr('status_reset')); }
+
         document.getElementById('fileInput').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            
+            const file = e.target.files[0]; if (!file) return;
             const ext = file.name.toLowerCase();
-            if (!ext.endsWith('.json') && !ext.endsWith('.txt') && !ext.endsWith('.jsonl')) {
-                showStatus(getI18nStr('status_error_txt'), "error");
-                return;
-            }
-
+            if (!ext.endsWith('.json') && !ext.endsWith('.txt') && !ext.endsWith('.jsonl')) { showStatus(getI18nStr('status_error_txt'), "error"); return; }
             if (ext.endsWith('.jsonl') && srcMode !== 'sillytavern') setSourceMode('sillytavern');
             else if (ext.endsWith('.json') && srcMode === 'sillytavern') setSourceMode('lsai');
-            
             const reader = new FileReader();
-            reader.onload = (ev) => {
-                document.getElementById('inputArea').value = ev.target.result;
-                convertChat();
-            };
+            reader.onload = (ev) => { document.getElementById('inputArea').value = ev.target.result; convertChat(); };
             reader.readAsText(file);
         });
-        
-        // Начальный запуск
-        updateUI();
-        changeLang('en');
+
+        loadTheme(); updateMenuThemeOpts(); updateUI(); changeLang('en');
     </script>
 </body>
 </html>
