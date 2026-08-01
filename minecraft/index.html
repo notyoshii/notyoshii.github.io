@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LSAI Server — Minecraft Java 26.2</title>
+    <style>
+        :root {
+            --ios-blue-top: #73a3f0;
+            --ios-blue-mid: #3871e0;
+            --ios-blue-bot: #1b4fb5;
+            --ios-green-top: #8ae35a;
+            --ios-green-mid: #53c623;
+            --ios-green-bot: #319e07;
+            --ios-red-top: #f87272;
+            --ios-red-mid: #e13232;
+            --ios-red-bot: #b81414;
+            --ios-silver-top: #c5cbd3;
+            --ios-silver-mid: #939da9;
+            --ios-silver-bot: #737d8c;
+            --ios-card-bg: rgba(255, 255, 255, 0.96);
+            --ios-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            --text-emboss-light: 0 1px 0 rgba(255, 255, 255, 0.9);
+            --text-emboss-dark: 0 -1px 0 rgba(0, 0, 0, 0.8);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, HelveticaNeue-Medium, "Helvetica Neue", Helvetica, Arial, sans-serif;
+            color: #222;
+            min-height: 100vh;
+            padding-bottom: 50px;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: background 0.4s ease;
+        }
+
+        /* iOS 6 Denim Jeans Fabric Background Texture */
+        body.theme-denim {
+            background-color: #172636;
+            background-image: 
+                radial-gradient(circle at 50% 30%, rgba(46, 80, 117, 0.4), rgba(10, 18, 28, 0.95)),
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" fill="%23182b40"/><path d="M0 0l16 16M-4 4l16 16M4 -4l16 16" stroke="%232e4d73" stroke-width="1.5" opacity="0.7"/><path d="M0 16L16 0M-4 12L12 -4M4 20L20 4" stroke="%23111d2b" stroke-width="1.5" opacity="0.85"/><path d="M1 0h1v16H1zM5 0h1v16H5zM9 0h1v16H9zM13 0h1v16H13z" fill="%23486c99" opacity="0.2"/></svg>');
+            background-repeat: repeat;
+            background-attachment: fixed;
+        }
+
+        /* iOS 6 Dark Linen Texture */
+        body.theme-linen {
+            background-color: #1a1a1a;
+            background-image: 
+                radial-gradient(circle at 50% 30%, rgba(60, 60, 60, 0.3), rgba(10, 10, 10, 0.92)),
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"><rect width="12" height="12" fill="%231d1d1d"/><path d="M0 0h6v6H0zM6 6h6v6H6z" fill="%23262626" opacity="0.6"/><path d="M0 6h6v6H0zM6 0h6v6H6z" fill="%23151515" opacity="0.8"/></svg>');
+            background-repeat: repeat;
+            background-attachment: fixed;
+        }
+
+        /* Custom iOS Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.4);
+            border-left: 1px solid rgba(255,255,255,0.08);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(to right, #6b7788, #424b57);
+            border-radius: 5px;
+            border: 1px solid rgba(255,255,255,0.25);
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 1140px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* Desktop Navigation Bar with glossy silver finish */
+        .ios-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            min-height: 56px;
+            background: linear-gradient(to bottom, 
+                #bdc4ce 0%, 
+                #8f98a5 49%, 
+                #7c8694 50%, 
+                #6c7684 100%);
+            border-bottom: 1px solid #232830;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 20px;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .ios-header-left, .ios-header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ios-header-title {
+            color: #fff;
+            font-size: 21px;
+            font-weight: bold;
+            text-shadow: var(--text-emboss-dark);
+            letter-spacing: -0.5px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .ios-header-badge {
+            background: linear-gradient(to bottom, #7a8898, #4d5663);
+            border: 1px solid #2f353d;
+            border-radius: 5px;
+            color: #fff;
+            font-size: 12px;
+            font-weight: bold;
+            padding: 5px 10px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 1px 2px rgba(0,0,0,0.4);
+            text-shadow: 0 -1px 0 rgba(0,0,0,0.8);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ios-header-badge .ver-dot {
+            width: 8px;
+            height: 8px;
+            background: #52e034;
+            border-radius: 50%;
+            box-shadow: 0 0 6px #52e034, inset 0 1px 0 #fff;
+        }
+
+        /* iOS 6 Segmented Control Switcher */
+        .ios-segmented-control {
+            display: inline-flex;
+            background: linear-gradient(to bottom, #4a535e, #2e343c);
+            border: 1px solid #21252b;
+            border-radius: 6px;
+            padding: 2px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.2);
+        }
+
+        .ios-segment-btn {
+            background: transparent;
+            border: none;
+            color: #d1d5db;
+            font-size: 12px;
+            font-weight: bold;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-shadow: 0 -1px 0 rgba(0,0,0,0.7);
+            transition: all 0.15s ease;
+        }
+
+        .ios-segment-btn.active {
+            background: linear-gradient(to bottom, #8fa1b8 0%, #57677a 50%, #465566 51%, #354252 100%);
+            color: #fff;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 1px 3px rgba(0,0,0,0.4);
+            border: 1px solid #2b3542;
+        }
+
+        .content-body {
+            padding: 24px 20px;
+        }
+
+        .desktop-hero-grid {
+            display: grid;
+            grid-template-columns: 1.3fr 0.9fr;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .desktop-content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .section-header {
+            font-size: 15px;
+            font-weight: bold;
+            color: #d2d8e3;
+            text-transform: uppercase;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 -1px 0 rgba(0,0,0,0.7);
+            margin: 10px 0 10px 6px;
+            letter-spacing: 0.6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Classic iOS Skeuomorphic Card */
+        .ios-card {
+            background: #f7f7f7;
+            border-radius: 12px;
+            border: 1px solid #a2a8b3;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Leather Card Variant with Stitched Border */
+        .ios-card-leather {
+            background-color: #2b221a;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="6" height="6"><rect width="6" height="6" fill="%232b221a"/><circle cx="3" cy="3" r="1.5" fill="%231d1610" opacity="0.65"/></svg>');
+            border: 1px solid #140f0b;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.85), 0 6px 16px rgba(0,0,0,0.6);
+            color: #f0e6d2;
+            padding: 3px;
+        }
+
+        .ios-card-leather-inner {
+            border: 2px dashed #5c4a3a;
+            border-radius: 9px;
+            padding: 20px;
+        }
+
+        .hero-banner {
+            text-align: center;
+            padding: 28px 20px;
+            background: linear-gradient(to bottom, #ffffff 0%, #e8edf5 100%);
+            position: relative;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hero-banner::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 45%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.08) 100%);
+            pointer-events: none;
+        }
+
+        .server-title {
+            font-size: 36px;
+            font-weight: 900;
+            color: #142334;
+            text-shadow: 0 1px 0 rgba(255,255,255,1), 0 2px 5px rgba(0,0,0,0.18);
+            letter-spacing: -1px;
+            margin-bottom: 8px;
+        }
+
+        .server-subtitle {
+            font-size: 16px;
+            color: #3e4c5e;
+            margin-bottom: 20px;
+            line-height: 1.45;
+            font-weight: 500;
+            text-shadow: var(--text-emboss-light);
+            max-width: 520px;
+        }
+
+        /* Recessed IP Input Box Container */
+        .ip-box-container {
+            background: linear-gradient(to bottom, #aeb4be, #cbd0d8);
+            border: 1px solid #7d8490;
+            border-radius: 12px;
+            padding: 14px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.8);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .ip-address-display {
+            background: #0d1218;
+            color: #33ff33;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 12px 18px;
+            border-radius: 8px;
+            border: 1px solid #222;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.9), 0 1px 0 rgba(255,255,255,0.4);
+            width: 100%;
+            text-align: center;
+            letter-spacing: 0.8px;
+            text-shadow: 0 0 8px rgba(51, 255, 51, 0.65);
+            word-break: break-all;
+        }
+
+        /* Classic Glossy iOS 6 Buttons */
+        .ios-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 13px 26px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            border-radius: 8px;
+            border: 1px solid #0e2a66;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            text-shadow: 0 -1px 0 rgba(0,0,0,0.8);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.55), 0 4px 8px rgba(0,0,0,0.35);
+            transition: all 0.12s ease;
+            text-decoration: none;
+            user-select: none;
+        }
+
+        .ios-btn-blue {
+            background: linear-gradient(to bottom, 
+                var(--ios-blue-top) 0%, 
+                var(--ios-blue-mid) 50%, 
+                var(--ios-blue-bot) 51%, 
+                #123e96 100%);
+            border-color: #0c255e;
+        }
+
+        .ios-btn-green {
+            background: linear-gradient(to bottom, 
+                var(--ios-green-top) 0%, 
+                var(--ios-green-mid) 50%, 
+                var(--ios-green-bot) 51%, 
+                #237504 100%);
+            border-color: #164d02;
+        }
+
+        .ios-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.05) 100%);
+            border-radius: 7px 7px 0 0;
+            pointer-events: none;
+        }
+
+        .ios-btn:active {
+            transform: translateY(1px);
+            box-shadow: inset 0 2px 7px rgba(0,0,0,0.75), 0 1px 2px rgba(0,0,0,0.3);
+            filter: brightness(0.92);
+        }
+
+        .license-banner {
+            margin-top: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #1e4512;
+            font-weight: bold;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.85);
+            background: linear-gradient(to bottom, #d6f8c8 0%, #9fe682 100%);
+            border: 1px solid #5aa33d;
+            padding: 9px 14px;
+            border-radius: 7px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .ios-online-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(to bottom, #2d2d2d, #141414);
+            border: 1px solid #484848;
+            padding: 8px 18px;
+            border-radius: 18px;
+            color: #fff;
+            font-size: 13px;
+            font-weight: bold;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 5px rgba(0,0,0,0.5);
+            margin-top: 14px;
+        }
+
+        .pulse-led {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .pulse-led.online {
+            background-color: #33ff33;
+            box-shadow: 0 0 10px #33ff33, inset 0 1px 0 #fff;
+            animation: pulseGlowGreen 1.5s infinite alternate;
+        }
+
+        .pulse-led.offline {
+            background-color: #ff3333;
+            box-shadow: 0 0 10px #ff3333, inset 0 1px 0 #fff;
+            animation: pulseGlowRed 1.5s infinite alternate;
+        }
+
+        .pulse-led.checking {
+            background-color: #ffcc00;
+            box-shadow: 0 0 10px #ffcc00, inset 0 1px 0 #fff;
+            animation: pulseGlowYellow 1s infinite alternate;
+        }
+
+        @keyframes pulseGlowGreen {
+            0% { opacity: 0.6; transform: scale(0.95); }
+            100% { opacity: 1; transform: scale(1.15); box-shadow: 0 0 14px #33ff33, inset 0 1px 0 #fff; }
+        }
+
+        @keyframes pulseGlowRed {
+            0% { opacity: 0.6; transform: scale(0.95); }
+            100% { opacity: 1; transform: scale(1.15); box-shadow: 0 0 14px #ff3333, inset 0 1px 0 #fff; }
+        }
+
+        @keyframes pulseGlowYellow {
+            0% { opacity: 0.5; transform: scale(0.9); }
+            100% { opacity: 1; transform: scale(1.1); box-shadow: 0 0 12px #ffcc00, inset 0 1px 0 #fff; }
+        }
+
+        .info-widget-card {
+            background: linear-gradient(to bottom, #fcfcfc 0%, #eaeaea 100%);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+        }
+
+        .widget-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1a2533;
+            border-bottom: 2px solid #d0d5dd;
+            padding-bottom: 10px;
+            margin-bottom: 14px;
+            text-shadow: var(--text-emboss-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .widget-stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stat-box {
+            background: linear-gradient(to bottom, #ffffff, #e1e5eb);
+            border: 1px solid #b2b8c2;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            box-shadow: inset 0 1px 0 #fff, 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1d3b66;
+            text-shadow: var(--text-emboss-light);
+            word-break: break-word;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #667085;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-top: 3px;
+        }
+
+        .refresh-btn-link {
+            background: none;
+            border: none;
+            color: #2b5cb8;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: underline;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* iOS List Styling */
+        .ios-list {
+            list-style: none;
+        }
+
+        .ios-list-item {
+            padding: 14px 18px;
+            border-bottom: 1px solid #e2e2e2;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(to bottom, #ffffff 0%, #f2f2f2 100%);
+            position: relative;
+            transition: background 0.15s ease;
+        }
+
+        .ios-list-item:hover {
+            background: linear-gradient(to bottom, #ffffff 0%, #e6ecf5 100%);
+        }
+
+        .ios-list-item:last-child {
+            border-bottom: none;
+        }
+
+        .ios-list-item-content {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex: 1;
+        }
+
+        .ios-item-icon {
+            font-size: 24px;
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(to bottom, #ffffff, #dcdcdc);
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.25), inset 0 1px 0 #fff;
+            border: 1px solid #adadad;
+            flex-shrink: 0;
+        }
+
+        .ios-item-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #111;
+            text-shadow: var(--text-emboss-light);
+        }
+
+        .ios-item-desc {
+            font-size: 13px;
+            color: #555;
+            margin-top: 3px;
+            line-height: 1.35;
+        }
+
+        .ios-pill-badge {
+            background: linear-gradient(to bottom, #4caee9, #0d5bb6);
+            border: 1px solid #083770;
+            border-radius: 12px;
+            color: #fff;
+            padding: 3px 10px;
+            font-size: 11px;
+            font-weight: bold;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 1px 2px rgba(0,0,0,0.3);
+            text-shadow: 0 -1px 0 rgba(0,0,0,0.6);
+            white-space: nowrap;
+        }
+
+        .ios-toast {
+            position: fixed;
+            bottom: 35px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(0, 0, 0, 0.88);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            color: #fff;
+            padding: 14px 28px;
+            border-radius: 22px;
+            font-size: 15px;
+            font-weight: bold;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.75);
+            backdrop-filter: blur(6px);
+            z-index: 1000;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ios-toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 900px) {
+            .desktop-hero-grid {
+                grid-template-columns: 1fr;
+            }
+            .desktop-content-grid {
+                grid-template-columns: 1fr;
+            }
+            .ios-header {
+                justify-content: center;
+                padding: 10px 14px;
+            }
+            .ios-header-title {
+                font-size: 18px;
+            }
+        }
+
+        @media (max-width: 520px) {
+            .content-body {
+                padding: 14px 10px;
+            }
+            .server-title {
+                font-size: 28px;
+            }
+            .server-subtitle {
+                font-size: 14px;
+            }
+            .widget-stat-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .ios-segmented-control {
+                scale: 0.95;
+            }
+        }
+    </style>
+</head>
+<body class="theme-denim">
+
+    <div class="app-container">
+        
+        <!-- Glossy Navigation Bar -->
+        <header class="ios-header">
+            <div class="ios-header-left">
+                <div class="ios-header-badge">
+                    <span class="ver-dot"></span> Java 26.2
+                </div>
+            </div>
+
+            <h1 class="ios-header-title">LSAI Server</h1>
+
+            <div class="ios-header-right">
+                <!-- Language Switcher -->
+                <div class="ios-segmented-control" style="margin-right: 6px;">
+                    <button class="ios-segment-btn active" id="langEnBtn" onclick="setLanguage('en')">🇬🇧 EN</button>
+                    <button class="ios-segment-btn" id="langRuBtn" onclick="setLanguage('ru')">🇷🇺 RU</button>
+                </div>
+
+                <!-- Theme Switcher Segmented Control -->
+                <div class="ios-segmented-control">
+                    <button class="ios-segment-btn active" id="themeDenimBtn" onclick="setTheme('denim')">👖 Denim</button>
+                    <button class="ios-segment-btn" id="themeLinenBtn" onclick="setTheme('linen')">🧵 Linen</button>
+                </div>
+            </div>
+        </header>
+
+        <main class="content-body">
+            
+            <!-- Hero Layout Grid (Desktop Optimized) -->
+            <div class="desktop-hero-grid">
+                
+                <!-- Main Hero Banner Card -->
+                <div class="ios-card">
+                    <div class="hero-banner">
+                        <h2 class="server-title">LSAI Server</h2>
+                        <p class="server-subtitle" id="i18n-hero-subtitle">
+                            Vanilla server without lag or griefing with a cozy community and useful plugins
+                        </p>
+
+                        <div class="ip-box-container">
+                            <div class="ip-address-display" id="ipAddress">terrier-jonas.tun.ply.gg</div>
+                            <button class="ios-btn ios-btn-blue" id="copyBtn" onclick="copyServerIP()">
+                                <span id="i18n-copy-btn">📋 Copy Server IP</span>
+                            </button>
+                        </div>
+
+                        <div class="license-banner">
+                            <span>🔓</span> <span id="i18n-license">Available for Cracked & Licensed players</span>
+                        </div>
+
+                        <!-- Live Status Badge -->
+                        <div class="ios-online-badge">
+                            <span class="pulse-led checking" id="statusLed"></span>
+                            <span id="liveStatusText">Checking server status...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Desktop Sidebar Stats Widget -->
+                <div class="ios-card">
+                    <div class="info-widget-card">
+                        <div>
+                            <div class="widget-title">
+                                <span id="i18n-widget-title">📊 Live Server Info</span>
+                                <button class="refresh-btn-link" onclick="pingMinecraftServer()">
+                                    🔄 <span id="i18n-refresh">Refresh</span>
+                                </button>
+                            </div>
+
+                            <div class="widget-stat-grid">
+                                <div class="stat-box">
+                                    <div class="stat-value" id="statStatusVal">Connecting...</div>
+                                    <div class="stat-label" id="i18n-stat-status">Status</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-value" id="statPlayersVal">- / -</div>
+                                    <div class="stat-label" id="i18n-stat-players">Online Players</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-value">26.2</div>
+                                    <div class="stat-label" id="i18n-stat-ver">Java Version</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-value" id="statModeVal">Vanilla+</div>
+                                    <div class="stat-label" id="i18n-stat-mode">Game Mode</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="background: #e4e8ee; padding: 12px; border-radius: 8px; border: 1px solid #c2c8d2; font-size: 13px; color: #444; line-height: 1.4; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);">
+                            💡 <strong id="i18n-quickjoin-title">Quick Connect:</strong> <span id="i18n-quickjoin-desc">Copy the IP address above, open Minecraft Java Edition 26.2 &rarr; Multiplayer &rarr; Direct Connection and paste the IP.</span>
+                            <div style="margin-top: 6px; font-size: 11px; color: #666; font-style: italic;" id="i18n-cache-note">⏱️ Note: Player count updates every 1-3 minutes due to public status API caching.</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 2-Column Content Grid for Desktop -->
+            <div class="desktop-content-grid">
+                
+                <!-- Plugins Section -->
+                <div>
+                    <div class="section-header">🔌 <span id="i18n-section-plugins">Server Plugins</span></div>
+                    <div class="ios-card">
+                        <ul class="ios-list">
+                            <li class="ios-list-item">
+                                <div class="ios-list-item-content">
+                                    <div class="ios-item-icon">🎙️</div>
+                                    <div>
+                                        <div class="ios-item-title">Simple Voice Chat</div>
+                                        <div class="ios-item-desc" id="i18n-plugin-voice">Positional 3D voice chat directly in-game (runs via UDP)</div>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="ios-list-item">
+                                <div class="ios-list-item-content">
+                                    <div class="ios-item-icon">🪑</div>
+                                    <div>
+                                        <div class="ios-item-title">GSit</div>
+                                        <div class="ios-item-desc" id="i18n-plugin-gsit">Ability to sit and lie down anywhere (<code style="background:#e0e0e0; padding:1px 4px; border-radius:3px;">/sit</code>, <code style="background:#e0e0e0; padding:1px 4px; border-radius:3px;">/lay</code>)</div>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="ios-list-item">
+                                <div class="ios-list-item-content">
+                                    <div class="ios-item-icon">👕</div>
+                                    <div>
+                                        <div class="ios-item-title">SkinsRestorer</div>
+                                        <div class="ios-item-desc" id="i18n-plugin-skins">Skin display for all players (including offline-mode clients)</div>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Datapacks Section -->
+                <div>
+                    <div class="section-header">✨ <span id="i18n-section-datapacks">Vanilla+ Datapacks</span></div>
+                    <div class="ios-card">
+                        <ul class="ios-list">
+                            <li class="ios-list-item">
+                                <div class="ios-list-item-content">
+                                    <div class="ios-item-icon">🛡️</div>
+                                    <div>
+                                        <div class="ios-item-title">Armored Elytra</div>
+                                        <div class="ios-item-desc" id="i18n-dp-elytra">Combine elytra with chestplate armor for flight and protection</div>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="ios-list-item">
+                                <div class="ios-list-item-content">
+                                    <div class="ios-item-icon">🪓</div>
+                                    <div>
+                                        <div class="ios-item-title">Timber & Wood Stripper</div>
+                                        <div class="ios-item-desc" id="i18n-dp-timber">Fell whole trees quickly and strip wood bark effortlessly</div>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="ios-list-item">
+                                <div class="ios-list-item-content">
+                                    <div class="ios-item-icon">🍃</div>
+                                    <div>
+                                        <div class="ios-item-title">Fast Leaf Decay</div>
+                                        <div class="ios-item-desc" id="i18n-dp-decay">Rapid leaf decay after cutting down a tree trunk</div>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="ios-list-item">
+                                <div class="ios-list-item-content">
+                                    <div class="ios-item-icon">💤</div>
+                                    <div>
+                                        <div class="ios-item-title">Multiplayer Sleep</div>
+                                        <div class="ios-item-desc" id="i18n-dp-sleep">Skip the night when only a portion of online players sleep</div>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="ios-list-item">
+                                <div class="ios-list-item-content">
+                                    <div class="ios-item-icon">🎨</div>
+                                    <div>
+                                        <div class="ios-item-title">Mini Blocks & Name Colors</div>
+                                        <div class="ios-item-desc" id="i18n-dp-decor">Custom mini-block decor and unique player nickname colors</div>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="ios-list-item">
+                                <div class="ios-list-item-content">
+                                    <div class="ios-item-icon">📖</div>
+                                    <div>
+                                        <div class="ios-item-title">Unlock All Recipes & TPA</div>
+                                        <div class="ios-item-desc" id="i18n-dp-recipes">Unlock all crafting recipes and enable teleport request commands</div>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Leather Footer Card -->
+            <div style="margin-top: 24px;">
+                <div class="ios-card ios-card-leather">
+                    <div class="ios-card-leather-inner">
+                        <h3 style="font-size: 18px; margin-bottom: 8px; text-shadow: 0 -1px 0 #000; color: #fce1b6; text-align: center;" id="i18n-footer-title">
+                            🌲 Join Our Cozy Community!
+                        </h3>
+                        <p style="font-size: 14px; line-height: 1.5; color: #d1c2a5; text-align: center; max-width: 800px; margin: 0 auto;" id="i18n-footer-desc">
+                            Connect using any Minecraft Java Edition version (including 26.2). Copy the IP address above, add it to your server list, and start playing with no custom launcher required!
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="ios-toast" id="toastNotice">
+        <span>✅</span> <span id="toastText">Server IP address copied!</span>
+    </div>
+
+    <script>
+        // Server details
+        const SERVER_HOST = "terrier-jonas.tun.ply.gg";
+        let currentLang = 'en';
+
+        // Multilingual Dictionaries
+        const translations = {
+            en: {
+                heroSubtitle: "Vanilla server without lag or griefing with a cozy community and useful plugins",
+                copyBtn: "📋 Copy Server IP",
+                copiedBtn: "✓ Copied!",
+                license: "Available for Cracked & Licensed players",
+                checkingStatus: "Checking server status...",
+                onlineStatus: (online, max) => `Online • ${online}/${max} players`,
+                offlineStatus: "Offline • Server Unreachable",
+                widgetTitle: "📊 Live Server Info",
+                refresh: "Refresh",
+                statStatus: "Status",
+                statPlayers: "Online Players",
+                statVer: "Java Version",
+                statMode: "Game Mode",
+                statModeVal: "Vanilla+",
+                quickjoinTitle: "Quick Connect:",
+                quickjoinDesc: "Copy the IP address above, open Minecraft Java Edition 26.2 → Multiplayer → Direct Connection and paste the IP.",
+                sectionPlugins: "Server Plugins",
+                pluginVoice: "Positional 3D voice chat directly in-game (runs via UDP)",
+                pluginGsit: "Ability to sit and lie down anywhere (/sit, /lay)",
+                pluginSkins: "Skin display for all players (including offline-mode clients)",
+                sectionDatapacks: "Vanilla+ Datapacks",
+                dpElytra: "Combine elytra with chestplate armor for flight and protection",
+                dpTimber: "Fell whole trees quickly and strip wood bark effortlessly",
+                dpDecay: "Rapid leaf decay after cutting down a tree trunk",
+                dpSleep: "Skip the night when only a portion of online players sleep",
+                dpDecor: "Custom mini-block decor and unique player nickname colors",
+                dpRecipes: "Unlock all crafting recipes and enable teleport request commands",
+                footerTitle: "🌲 Join Our Cozy Community!",
+                footerDesc: "Connect using any Minecraft Java Edition version (including 26.2). Copy the IP address above, add it to your server list, and start playing with no custom launcher required!",
+                toastCopied: "Server IP address copied!",
+                statusOnlineText: "Online",
+                statusOfflineText: "Offline",
+                cacheNote: "Note: Player count updates every 1–3 minutes due to public status API caching."
+            },
+            ru: {
+                heroSubtitle: "Ванильный сервер без лагов и гриферства с ламповым сообществом и полезными плагинами",
+                copyBtn: "📋 Скопировать IP",
+                copiedBtn: "✓ Скопировано!",
+                license: "Доступен с пиратки и лицензии",
+                checkingStatus: "Проверка статуса сервера...",
+                onlineStatus: (online, max) => `Онлайн • ${online}/${max} игроков`,
+                offlineStatus: "Офлайн • Сервер недоступен",
+                widgetTitle: "📊 Информация о сервере",
+                refresh: "Обновить",
+                statStatus: "Статус",
+                statPlayers: "Игроков онлайн",
+                statVer: "Версия Java",
+                statMode: "Режим игры",
+                statModeVal: "Ванилла+",
+                quickjoinTitle: "Быстрое подключение:",
+                quickjoinDesc: "Скопируйте IP выше, откройте Minecraft Java Edition 26.2 → Сетевая игра → По адресу и вставьте IP.",
+                sectionPlugins: "Плагины сервера",
+                pluginVoice: "Позиционный 3D-голосовой чат прямо в игре (работает через UDP)",
+                pluginGsit: "Возможность сидеть и лежать где угодно (/sit, /lay)",
+                pluginSkins: "Отображение скинов для всех игроков (даже на пиратских клиентах)",
+                sectionDatapacks: "Vanilla+ Датапаки",
+                dpElytra: "Объединение элитр с нагрудником для защиты и полёта",
+                dpTimber: "Быстрый сруб всего дерева за раз и удобное снятие коры",
+                dpDecay: "Быстрое опадение листвы после сруба ствола дерева",
+                dpSleep: "Пропуск ночи, если засыпает только часть игроков онлайн",
+                dpDecor: "Кастомный декор из мини-блоков и уникальные цвета ников",
+                dpRecipes: "Разблокировка всех рецептов крафта и команды телепортации",
+                footerTitle: "🌲 Присоединяйся к ламповому комьюнити!",
+                footerDesc: "Заходи с любой версии Minecraft Java Edition (включая 26.2). Скопируй адрес выше, добавь в список серверов и играй без дополнительных лаунчеров!",
+                toastCopied: "IP адрес скопирован!",
+                statusOnlineText: "Онлайн",
+                statusOfflineText: "Офлайн",
+                cacheNote: "Примечание: Счетчик игроков обновляется каждые 1–3 минуты из-за кэширования публичных API."
+            }
+        };
+
+        // Copy IP logic
+        function copyServerIP() {
+            const ipText = SERVER_HOST;
+            
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(ipText).then(() => {
+                    triggerCopyAnimation();
+                }).catch(() => {
+                    fallbackCopy(ipText);
+                });
+            } else {
+                fallbackCopy(ipText);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const tempInput = document.createElement("input");
+            tempInput.value = text;
+            tempInput.style.position = "absolute";
+            tempInput.style.left = "-9999px";
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            try {
+                document.execCommand('copy');
+                triggerCopyAnimation();
+            } catch (err) {
+                console.error('Copy failed', err);
+            }
+            document.body.removeChild(tempInput);
+        }
+
+        function triggerCopyAnimation() {
+            const btn = document.getElementById("copyBtn");
+            const btnText = document.getElementById("i18n-copy-btn");
+            const toast = document.getElementById("toastNotice");
+
+            const originalText = translations[currentLang].copyBtn;
+            btnText.innerHTML = translations[currentLang].copiedBtn;
+            btn.classList.remove("ios-btn-blue");
+            btn.classList.add("ios-btn-green");
+
+            toast.classList.add("show");
+
+            setTimeout(() => {
+                btnText.innerHTML = originalText;
+                btn.classList.remove("ios-btn-green");
+                btn.classList.add("ios-btn-blue");
+                toast.classList.remove("show");
+            }, 2500);
+        }
+
+        // Helper function to query multiple Minecraft Server Ping APIs simultaneously
+        async function fetchServerStatus(host) {
+            const ts = Date.now();
+            const fetchPromises = [
+                // API 1: mcstatus.io
+                fetch(`https://api.mcstatus.io/v2/status/java/${host}?t=${ts}`)
+                    .then(r => r.ok ? r.json() : null)
+                    .then(data => {
+                        if (data && data.online) {
+                            return {
+                                online: true,
+                                playersOnline: data.players?.online ?? 0,
+                                playersMax: data.players?.max ?? 20
+                            };
+                        }
+                        return null;
+                    })
+                    .catch(() => null),
+
+                // API 2: mcsrvstat.us
+                fetch(`https://api.mcsrvstat.us/3/${host}?t=${ts}`)
+                    .then(r => r.ok ? r.json() : null)
+                    .then(data => {
+                        if (data && data.online) {
+                            return {
+                                online: true,
+                                playersOnline: data.players?.online ?? 0,
+                                playersMax: data.players?.max ?? 20
+                            };
+                        }
+                        return null;
+                    })
+                    .catch(() => null),
+
+                // API 3: minetools.eu
+                fetch(`https://api.minetools.eu/ping/${host}`)
+                    .then(r => r.ok ? r.json() : null)
+                    .then(data => {
+                        if (data && !data.error && data.players) {
+                            return {
+                                online: true,
+                                playersOnline: data.players.online ?? 0,
+                                playersMax: data.players.max ?? 20
+                            };
+                        }
+                        return null;
+                    })
+                    .catch(() => null),
+
+                // API 4: mcapi.us
+                fetch(`https://mcapi.us/server/status?ip=${host}&t=${ts}`)
+                    .then(r => r.ok ? r.json() : null)
+                    .then(data => {
+                        if (data && data.online) {
+                            return {
+                                online: true,
+                                playersOnline: data.players?.now ?? 0,
+                                playersMax: data.players?.max ?? 20
+                            };
+                        }
+                        return null;
+                    })
+                    .catch(() => null)
+            ];
+
+            const results = await Promise.all(fetchPromises);
+            const validOnlineResults = results.filter(r => r && r.online);
+
+            if (validOnlineResults.length > 0) {
+                // Select response with highest player count (most up-to-date cache)
+                validOnlineResults.sort((a, b) => b.playersOnline - a.playersOnline);
+                return validOnlineResults[0];
+            }
+
+            return { online: false, playersOnline: 0, playersMax: 0 };
+        }
+
+        // Live Minecraft Server Ping via public APIs
+        async function pingMinecraftServer() {
+            const led = document.getElementById("statusLed");
+            const statusText = document.getElementById("liveStatusText");
+            const statVal = document.getElementById("statStatusVal");
+            const playersVal = document.getElementById("statPlayersVal");
+
+            // Set state to checking
+            led.className = "pulse-led checking";
+            statusText.innerText = translations[currentLang].checkingStatus;
+            statVal.innerText = "...";
+            playersVal.innerText = "...";
+
+            try {
+                const res = await fetchServerStatus(SERVER_HOST);
+
+                if (res.online) {
+                    led.className = "pulse-led online";
+                    statusText.innerText = translations[currentLang].onlineStatus(res.playersOnline, res.playersMax);
+                    statVal.innerText = translations[currentLang].statusOnlineText;
+                    statVal.style.color = "#28a745";
+                    playersVal.innerText = `${res.playersOnline} / ${res.playersMax}`;
+                } else {
+                    setOfflineState();
+                }
+            } catch (error) {
+                console.warn("Error fetching MC server status:", error);
+                setOfflineState();
+            }
+        }
+
+        function setOfflineState() {
+            const led = document.getElementById("statusLed");
+            const statusText = document.getElementById("liveStatusText");
+            const statVal = document.getElementById("statStatusVal");
+            const playersVal = document.getElementById("statPlayersVal");
+
+            led.className = "pulse-led offline";
+            statusText.innerText = translations[currentLang].offlineStatus;
+            statVal.innerText = translations[currentLang].statusOfflineText;
+            statVal.style.color = "#dc3545";
+            playersVal.innerText = "0 / 0";
+        }
+
+        // Language Switcher
+        function setLanguage(lang) {
+            currentLang = lang;
+            const t = translations[lang];
+
+            document.getElementById("langEnBtn").classList.toggle("active", lang === 'en');
+            document.getElementById("langRuBtn").classList.toggle("active", lang === 'ru');
+
+            document.getElementById("i18n-hero-subtitle").innerText = t.heroSubtitle;
+            document.getElementById("i18n-copy-btn").innerText = t.copyBtn;
+            document.getElementById("i18n-license").innerText = t.license;
+            document.getElementById("i18n-widget-title").innerText = t.widgetTitle;
+            document.getElementById("i18n-refresh").innerText = t.refresh;
+            document.getElementById("i18n-stat-status").innerText = t.statStatus;
+            document.getElementById("i18n-stat-players").innerText = t.statPlayers;
+            document.getElementById("i18n-stat-ver").innerText = t.statVer;
+            document.getElementById("i18n-stat-mode").innerText = t.statMode;
+            document.getElementById("statModeVal").innerText = t.statModeVal;
+            document.getElementById("i18n-quickjoin-title").innerText = t.quickjoinTitle;
+            document.getElementById("i18n-quickjoin-desc").innerText = t.quickjoinDesc;
+            document.getElementById("i18n-section-plugins").innerText = t.sectionPlugins;
+            document.getElementById("i18n-plugin-voice").innerText = t.pluginVoice;
+            document.getElementById("i18n-plugin-gsit").innerText = t.pluginGsit;
+            document.getElementById("i18n-plugin-skins").innerText = t.pluginSkins;
+            document.getElementById("i18n-section-datapacks").innerText = t.sectionDatapacks;
+            document.getElementById("i18n-dp-elytra").innerText = t.dpElytra;
+            document.getElementById("i18n-dp-timber").innerText = t.dpTimber;
+            document.getElementById("i18n-dp-decay").innerText = t.dpDecay;
+            document.getElementById("i18n-dp-sleep").innerText = t.dpSleep;
+            document.getElementById("i18n-dp-decor").innerText = t.dpDecor;
+            document.getElementById("i18n-dp-recipes").innerText = t.dpRecipes;
+            document.getElementById("i18n-footer-title").innerText = t.footerTitle;
+            document.getElementById("i18n-footer-desc").innerText = t.footerDesc;
+            document.getElementById("toastText").innerText = t.toastCopied;
+            document.getElementById("i18n-cache-note").innerText = "⏱️ " + t.cacheNote;
+
+            // Re-ping to update status text in new language
+            pingMinecraftServer();
+        }
+
+        // Theme Switcher (Denim Jeans vs Dark Linen)
+        function setTheme(theme) {
+            const body = document.body;
+            const denimBtn = document.getElementById("themeDenimBtn");
+            const linenBtn = document.getElementById("themeLinenBtn");
+
+            if (theme === 'denim') {
+                body.className = "theme-denim";
+                denimBtn.classList.add("active");
+                linenBtn.classList.remove("active");
+            } else if (theme === 'linen') {
+                body.className = "theme-linen";
+                linenBtn.classList.add("active");
+                denimBtn.classList.remove("active");
+            }
+        }
+
+        // Initialize on window load
+        window.onload = function () {
+            pingMinecraftServer();
+            // Periodically refresh server ping every 30 seconds
+            setInterval(pingMinecraftServer, 30000);
+        };
+    </script>
+</body>
+</html>
